@@ -1,0 +1,13 @@
+{
+  "name": "calendar-dashboard-frontend",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npx serve -l 3001"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "welcomeMessages": {
+    "Lundi": {
+      "06:00-09:30": "Bonjour !",
+      "09:30-12:00": "Joyeux Lundi !",
+      "12:00-13:00": "Bon appétit !",
+      "13:00-18:00": "Courage !",
+      "18:00-06:00": "Bonne soirée !"
+    },
+    "Mardi": {
+      "06:00-09:30": "Good morning !",
+      "09:30-12:00": "Le mardi c'est permis !",
+      "12:00-13:00": "Enjoy your meal !",
+      "13:00-18:00": "Force et robustesse !",
+      "18:00-06:00": "Good evening !"
+    },
+    "Mercredi": {
+      "06:00-09:30": "¡Buenos dias !",
+      "09:30-12:00": "On est Credi !",
+      "12:00-13:00": "¡buen provecho!",
+      "13:00-18:00": "Courage et dévouement !",
+      "18:00-06:00": "¡Buenas tardes !"
+    },
+    "Jeudi": {
+      "06:00-09:30": "Gutten Tag !",
+      "09:30-12:00": "Le retour du Jeudi",
+      "12:00-13:00": "Guten Appetit !",
+      "13:00-18:00": "Allez les verts!",
+      "18:00-06:00": "Schönen Abend !"
+    },
+    "Vendredi": {
+      "06:00-09:30": "Buongiorno !",
+      "09:30-12:00": "On tient le rythme !",
+      "12:00-13:00": "Buon appetito !",
+      "13:00-18:00": "Pensez à ranger!",
+      "18:00-06:00": "Ayé! Bon weekend !"
+    }
+  },
+  "primaryColor": "#00e1ff",
+  "secondaryColor": "#000000",
+  "fontFamily": "Verdana, sans-serif",
+  "eventBgColor": "#000000",
+  "eventTextColor": "#ffffff"
+}

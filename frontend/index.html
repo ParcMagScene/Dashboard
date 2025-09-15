@@ -1,0 +1,59 @@
+
+
+<!-- =============================================== -->
+<!--  Fichier : index.html (frontend)               -->
+<!--  Rôle : Page principale du dashboard calendrier -->
+<!--  - Affichage du logo, message dynamique, date/heure -->
+<!--  - Liste des événements du jour                -->
+<!--  - Lecture Spotify en cours                    -->
+<!--  Tous les blocs sont commentés pour faciliter la maintenance -->
+<!-- =============================================== -->
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <title>Dashboard Calendrier</title>
+    <!-- Favicon/logo affiché dans l’onglet du navigateur -->
+    <link rel="icon" type="image/png" href="https://192.168.205.56:3001/api/logo">
+  <!-- Feuille de style principale du dashboard -->
+  <link rel="stylesheet" href="styles.css">
+    <!-- Script JS principal pour l'affichage dynamique -->
+  <script src="main.js" type="module"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <body>
+    <!-- =============================== -->
+    <!--        EN-TÊTE DU DASHBOARD     -->
+    <!-- =============================== -->
+    <header id="header">
+      <!-- Logo entreprise (chargé dynamiquement via JS) -->
+      <img id="logo" src="" alt="Logo entreprise">
+      <!-- Message dynamique du jour (défilement, JS + CSS) -->
+      <h1 id="welcome" class="marquee"></h1>
+      <!-- Date et heure actuelles (mise à jour JS) -->
+      <div id="datetime">
+        <span id="date"></span>
+        <br>
+        <span id="heure"></span>
+      </div>
+    </header>
+
+    <!-- =============================== -->
+    <!--      CONTENU PRINCIPAL          -->
+    <!-- =============================== -->
+    <main>
+      <section id="events">
+        <!-- Liste des événements du jour (remplie dynamiquement par JS) -->
+        <ul id="events-list"></ul>
+      </section>
+    </main>
+
+    <!-- =============================== -->
+    <!--         PIED DE PAGE            -->
+    <!-- =============================== -->
+    <footer>
+      <!-- Lecture Spotify en cours (affichée dynamiquement) -->
+      <div id="spotify-current"></div>
+    </footer>
+  </body>
+</html>

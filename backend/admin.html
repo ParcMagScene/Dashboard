@@ -1,0 +1,274 @@
+
+<!-- =============================================== -->
+<!--  Fichier : admin.html (backend)                -->
+<!--  Rôle : Interface d'administration du dashboard -->
+<!--  - Configuration générale                      -->
+<!--  - Messages d'accueil dynamiques               -->
+<!--  - Upload du logo entreprise                   -->
+<!--  Tous les blocs sont commentés pour faciliter la maintenance -->
+<!-- =============================================== -->
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <!-- Styles internes pour la page admin -->
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 2em;
+        background: #000;
+        color: #00e1ff;
+      }
+      label { display: block; margin-top: 1em; }
+      input, select, textarea {
+        margin-top: 0.5em;
+        font-family: inherit;
+        color: #00e1ff;
+        background: #222;
+        border: 1px solid #00e1ff;
+      }
+      .logo-preview { margin-top: 1em; max-height: 80px; }
+      button {
+        margin-top: 1em;
+        background: #00e1ff;
+        color: #000;
+        border: none;
+        padding: 0.5em 1.5em;
+        font-weight: bold;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0090c0;
+      }
+      .days-container {
+        display: flex;
+        gap: 2em;
+        flex-wrap: wrap;
+        margin-bottom: 2em;
+      }
+      .day-block {
+        border: 1px solid #00e1ff;
+        padding: 1em;
+        background: #111;
+        min-width: 220px;
+        flex: 1 1 220px;
+        color: #00e1ff;
+      }
+      h2, h3 {
+        color: #00e1ff;
+      }
+      textarea {
+        width: 100%;
+        min-height: 2.5em;
+        resize: vertical;
+      }
+    </style>
+  </head>
+  <body>
+  <!-- =============================== -->
+  <!-- Titre principal -->
+  <!-- NOTE : Les éléments header, logo, message dynamique, date/heure et footer sont identiques à index.html. Mutualisation recommandée via composant ou inclusion. -->
+  <h1>Administration du Dashboard</h1>
+
+    <!-- =============================== -->
+    <!-- Formulaire de configuration générale -->
+    <form id="configForm">
+      <label style="margin-top:2em;display:block;">
+        <input type="checkbox" id="scrollToggle" checked>
+        Activer le défilement automatique des événements
+      </label>
+      <!-- Champ Message d'accueil supprimé : désormais géré uniquement par les messages dynamiques -->
+      <label>
+        Couleur principale :
+        <input type="color" name="primaryColor" id="primaryColor">
+      </label>
+      <label>
+        Couleur secondaire :
+        <input type="color" name="secondaryColor" id="secondaryColor">
+      </label>
+      <label>
+        Police :
+        <select name="fontFamily" id="fontFamily">
+          <option value="Arial, sans-serif">Arial</option>
+          <option value="Verdana, sans-serif">Verdana</option>
+          <option value="Tahoma, sans-serif">Tahoma</option>
+          <option value="Georgia, serif">Georgia</option>
+        </select>
+      </label>
+      <label>
+        Couleur fond événement :
+        <input type="color" name="eventBgColor" id="eventBgColor">
+      </label>
+      <label>
+        Couleur texte événement :
+        <input type="color" name="eventTextColor" id="eventTextColor">
+      </label>
+      <button type="submit">Enregistrer</button>
+    </form>
+
+    <!-- =============================== -->
+    <!-- Formulaire des messages d'accueil dynamiques -->
+    <h2>Messages d'accueil dynamiques</h2>
+    <form id="welcomeMessagesForm">
+      <div id="welcomeMessagesContent"></div>
+      <button type="submit">Enregistrer les messages dynamiques</button>
+    </form>
+    <div id="welcomeMessagesResult"></div>
+    <hr>
+
+    <!-- =============================== -->
+    <!-- Formulaire d'upload du logo entreprise -->
+    <h2>Logo entreprise</h2>
+    <form id="logoForm" enctype="multipart/form-data">
+      <input type="file" name="logo" id="logoInput" accept="image/*">
+      <button type="submit">Uploader le logo</button>
+    </form>
+    <img id="logoPreview" class="logo-preview" src="" alt="Logo actuel">
+
+    <!-- =============================== -->
+    <!-- Script principal de gestion admin -->
+    <script>
+      // URL du backend
+      const backendUrl = location.origin;
+      // Jours et créneaux pour les messages dynamiques
+      const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
+      const slots = [
+        "06:00-09:30",
+        "09:30-12:00",
+        "12:00-13:00",
+        "13:00-18:00",
+        "18:00-06:00"
+      ];
+
+      // -------------------------------------------------
+      // Récupère la configuration actuelle
+      async function fetchConfig() {
+        const res = await fetch(`${backendUrl}/api/config`);
+        return res.json();
+      }
+
+      // -------------------------------------------------
+      // Met à jour la configuration générale
+      async function updateConfig(e) {
+        e.preventDefault();
+        const data = {
+          primaryColor: document.getElementById('primaryColor').value,
+          secondaryColor: document.getElementById('secondaryColor').value,
+          fontFamily: document.getElementById('fontFamily').value,
+          eventBgColor: document.getElementById('eventBgColor').value,
+          eventTextColor: document.getElementById('eventTextColor').value
+        };
+        await fetch(`${backendUrl}/api/config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        alert('Configuration enregistrée !');
+      }
+
+      // -------------------------------------------------
+      // Affiche le logo actuel
+      async function fetchLogo() {
+        document.getElementById('logoPreview').src = `${backendUrl}/api/logo`;
+      }
+
+      // -------------------------------------------------
+      // Upload du logo entreprise
+      async function uploadLogo(e) {
+        e.preventDefault();
+        const formData = new FormData();
+        formData.append('logo', document.getElementById('logoInput').files[0]);
+        await fetch(`${backendUrl}/api/logo`, {
+          method: 'POST',
+          body: formData
+        });
+        fetchLogo();
+        alert('Logo mis à jour !');
+      }
+
+      // -------------------------------------------------
+      // Récupère les messages dynamiques
+      async function fetchWelcomeMessages() {
+        const res = await fetch(`${backendUrl}/api/welcome-messages`);
+        const data = await res.json();
+        return data.welcomeMessages || {};
+      }
+
+      // -------------------------------------------------
+      // Construit le formulaire des messages dynamiques
+      function buildWelcomeMessagesForm(messages) {
+        const container = document.getElementById('welcomeMessagesContent');
+        container.innerHTML = '';
+        const daysRow = document.createElement('div');
+        daysRow.className = 'days-container';
+        days.forEach(day => {
+          const block = document.createElement('div');
+          block.className = 'day-block';
+          block.innerHTML = `<h3>${day}</h3>`;
+          slots.forEach(slot => {
+            const val = messages?.[day]?.[slot] || '';
+            block.innerHTML += `
+              <label for="${day}_${slot}">${slot}</label>
+              <textarea id="${day}_${slot}" name="${day}_${slot}">${val}</textarea>
+            `;
+          });
+          daysRow.appendChild(block);
+        });
+        container.appendChild(daysRow);
+      }
+
+      // -------------------------------------------------
+      // Initialisation de la page admin
+      document.addEventListener('DOMContentLoaded', async () => {
+        // Remplir le formulaire de config
+        const config = await fetchConfig();
+        document.getElementById('primaryColor').value = config.primaryColor || '#1976d2';
+        document.getElementById('secondaryColor').value = config.secondaryColor || '#ffffff';
+        document.getElementById('fontFamily').value = config.fontFamily || 'Arial, sans-serif';
+        document.getElementById('eventBgColor').value = config.eventBgColor || '#f5f5f5';
+        document.getElementById('eventTextColor').value = config.eventTextColor || '#222222';
+        fetchLogo();
+
+        // Remplir le formulaire des messages dynamiques
+        const messages = await fetchWelcomeMessages();
+        buildWelcomeMessagesForm(messages);
+
+        // Gestion des formulaires
+        document.getElementById('configForm').addEventListener('submit', updateConfig);
+        document.getElementById('logoForm').addEventListener('submit', uploadLogo);
+
+        document.getElementById('welcomeMessagesForm').onsubmit = async (e) => {
+          e.preventDefault();
+          const welcomeMessages = {};
+          days.forEach(day => {
+            welcomeMessages[day] = {};
+            slots.forEach(slot => {
+              welcomeMessages[day][slot] = document.getElementById(`${day}_${slot}`).value;
+            });
+          });
+          await fetch(`${backendUrl}/api/welcome-messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ welcomeMessages })
+          });
+          document.getElementById('welcomeMessagesResult').innerText = 'Messages d\'accueil enregistrés !';
+        };
+
+        // Gestion du toggle défilement : sauvegarde dans localStorage
+        const scrollToggle = document.getElementById('scrollToggle');
+        if (localStorage.getItem('scrollEnabled') === 'false') {
+          scrollToggle.checked = false;
+        }
+        scrollToggle.addEventListener('change', () => {
+          localStorage.setItem('scrollEnabled', scrollToggle.checked ? 'true' : 'false');
+        });
+      });
+    </script>
+
+    <!-- =============================== -->
+    <!-- Bouton d'authentification Spotify (optionnel) -->
+    <div id="spotify-auth-btn" style="text-align:center; margin:2em 0;"></div>
+  </body>
+</html>
