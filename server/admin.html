@@ -59,6 +59,31 @@
       h2, h3 {
         color: #00e1ff;
       }
+      .color-rule {
+        display: flex;
+        align-items: center;
+        gap: 1em;
+        margin-bottom: 1em;
+        padding: 1em;
+        border: 1px solid #333;
+        background: #111;
+      }
+      .color-rule input[type="text"] {
+        flex: 1;
+        min-width: 120px;
+      }
+      .color-rule input[type="color"] {
+        width: 50px;
+        height: 35px;
+        border: none;
+        cursor: pointer;
+      }
+      .color-rule button {
+        background: #ff3333;
+        color: white;
+        font-size: 0.8em;
+        padding: 0.3em 0.8em;
+      }
       textarea {
         width: 100%;
         min-height: 2.5em;
@@ -78,6 +103,10 @@
       <label style="margin-top:2em;display:block;">
         <input type="checkbox" id="scrollToggle" checked>
         Activer le défilement automatique des événements
+      </label>
+      <label style="margin-top:1em;display:block;">
+        <input type="checkbox" id="showWeatherToggle">
+        Afficher la météo
       </label>
       <!-- Champ Message d'accueil supprimé : désormais géré uniquement par les messages dynamiques -->
       <label>
@@ -119,6 +148,20 @@
     <hr>
 
     <!-- =============================== -->
+    <!-- Gestion des couleurs d'événements -->
+    <h2>Couleurs des événements par mots-clés</h2>
+    <p>Configurez les couleurs d'affichage des événements selon les mots-clés présents dans le champ "lieu".</p>
+    
+    <div id="colorRulesContainer">
+      <!-- Les règles seront générées dynamiquement -->
+    </div>
+    
+    <button onclick="addColorRule()">+ Ajouter une règle</button>
+    <button onclick="saveColorRules()">Enregistrer les règles de couleurs</button>
+    <div id="colorRulesResult"></div>
+    <hr>
+
+    <!-- =============================== -->
     <!-- Formulaire d'upload du logo entreprise -->
     <h2>Logo entreprise</h2>
     <form id="logoForm" enctype="multipart/form-data">
@@ -133,13 +176,13 @@
       // URL du backend
       const backendUrl = location.origin;
       // Jours et créneaux pour les messages dynamiques
-      const days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"];
+      const days = ["lundi", "mardi", "mercredi", "jeudi", "vendredi"];
       const slots = [
-        "06:00-09:30",
-        "09:30-12:00",
-        "12:00-13:00",
-        "13:00-18:00",
-        "18:00-06:00"
+        { id: "matin", label: "Matin (06:00-09:30)" },
+        { id: "matinee", label: "Matinée (09:30-12:00)" },
+        { id: "midi", label: "Midi (12:00-13:00)" },
+        { id: "apres_midi", label: "Après-midi (13:00-18:00)" },
+        { id: "soir", label: "Soir (18:00-06:00)" }
       ];
 
       // -------------------------------------------------
@@ -158,7 +201,8 @@
           secondaryColor: document.getElementById('secondaryColor').value,
           fontFamily: document.getElementById('fontFamily').value,
           eventBgColor: document.getElementById('eventBgColor').value,
-          eventTextColor: document.getElementById('eventTextColor').value
+          eventTextColor: document.getElementById('eventTextColor').value,
+          showWeather: document.getElementById('showWeatherToggle').checked
         };
         await fetch(`${backendUrl}/api/config`, {
           method: 'POST',
@@ -208,10 +252,10 @@
           block.className = 'day-block';
           block.innerHTML = `<h3>${day}</h3>`;
           slots.forEach(slot => {
-            const val = messages?.[day]?.[slot] || '';
+            const val = messages?.[day]?.[slot.id] || '';
             block.innerHTML += `
-              <label for="${day}_${slot}">${slot}</label>
-              <textarea id="${day}_${slot}" name="${day}_${slot}">${val}</textarea>
+              <label for="${day}_${slot.id}">${slot.label}</label>
+              <textarea id="${day}_${slot.id}" name="${day}_${slot.id}">${val}</textarea>
             `;
           });
           daysRow.appendChild(block);
@@ -229,6 +273,7 @@
         document.getElementById('fontFamily').value = config.fontFamily || 'Arial, sans-serif';
         document.getElementById('eventBgColor').value = config.eventBgColor || '#f5f5f5';
         document.getElementById('eventTextColor').value = config.eventTextColor || '#222222';
+        document.getElementById('showWeatherToggle').checked = config.showWeather !== undefined ? config.showWeather : false;
         fetchLogo();
 
         // Remplir le formulaire des messages dynamiques
@@ -245,15 +290,29 @@
           days.forEach(day => {
             welcomeMessages[day] = {};
             slots.forEach(slot => {
-              welcomeMessages[day][slot] = document.getElementById(`${day}_${slot}`).value;
+              welcomeMessages[day][slot.id] = document.getElementById(`${day}_${slot.id}`).value;
             });
           });
-          await fetch(`${backendUrl}/api/welcome-messages`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ welcomeMessages })
-          });
-          document.getElementById('welcomeMessagesResult').innerText = 'Messages d\'accueil enregistrés !';
+          try {
+            const response = await fetch(`${backendUrl}/api/welcome-messages`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ welcomeMessages })
+            });
+            
+            if (response.ok) {
+              const result = await response.json();
+              document.getElementById('welcomeMessagesResult').innerText = 'Messages d\'accueil enregistrés avec succès !';
+              document.getElementById('welcomeMessagesResult').style.color = '#00ff00';
+            } else {
+              const error = await response.json();
+              document.getElementById('welcomeMessagesResult').innerText = 'Erreur: ' + (error.error || 'Échec de la sauvegarde');
+              document.getElementById('welcomeMessagesResult').style.color = '#ff0000';
+            }
+          } catch (err) {
+            document.getElementById('welcomeMessagesResult').innerText = 'Erreur de connexion: ' + err.message;
+            document.getElementById('welcomeMessagesResult').style.color = '#ff0000';
+          }
         };
 
         // Gestion du toggle défilement : sauvegarde dans localStorage
@@ -264,7 +323,100 @@
         scrollToggle.addEventListener('change', () => {
           localStorage.setItem('scrollEnabled', scrollToggle.checked ? 'true' : 'false');
         });
+
+        // Charger les règles de couleurs au démarrage
+        loadColorRules();
       });
+
+      // ===============================
+      // Fonctions de gestion des règles de couleurs
+      // ===============================
+
+      let colorRulesData = [];
+
+      // Charger les règles existantes
+      async function loadColorRules() {
+        try {
+          const response = await fetch(`${backendUrl}/api/event-color-rules`);
+          const data = await response.json();
+          colorRulesData = data.rules || [];
+          renderColorRules();
+        } catch (err) {
+          console.error('Erreur lors du chargement des règles:', err);
+          // Règles par défaut
+          colorRulesData = [
+            { keyword: 'presta', color: '#0074d9', description: 'Prestation - Bleu' },
+            { keyword: 'loc', color: '#2ecc40', description: 'Location - Vert' },
+            { keyword: 'liv', color: '#FFD600', description: 'Livraison - Jaune' }
+          ];
+          renderColorRules();
+        }
+      }
+
+      // Afficher les règles dans l'interface
+      function renderColorRules() {
+        const container = document.getElementById('colorRulesContainer');
+        container.innerHTML = '';
+        
+        colorRulesData.forEach((rule, index) => {
+          const ruleDiv = document.createElement('div');
+          ruleDiv.className = 'color-rule';
+          ruleDiv.innerHTML = `
+            <input type="text" placeholder="Mot-clé (ex: presta)" value="${rule.keyword}" 
+                   onchange="updateRule(${index}, 'keyword', this.value)">
+            <input type="color" value="${rule.color}" 
+                   onchange="updateRule(${index}, 'color', this.value)">
+            <input type="text" placeholder="Description (optionnel)" value="${rule.description || ''}" 
+                   onchange="updateRule(${index}, 'description', this.value)">
+            <button onclick="removeRule(${index})">Supprimer</button>
+          `;
+          container.appendChild(ruleDiv);
+        });
+      }
+
+      // Ajouter une nouvelle règle
+      function addColorRule() {
+        colorRulesData.push({ keyword: '', color: '#000000', description: '' });
+        renderColorRules();
+      }
+
+      // Mettre à jour une règle
+      function updateRule(index, field, value) {
+        if (colorRulesData[index]) {
+          colorRulesData[index][field] = value;
+        }
+      }
+
+      // Supprimer une règle
+      function removeRule(index) {
+        colorRulesData.splice(index, 1);
+        renderColorRules();
+      }
+
+      // Sauvegarder les règles
+      async function saveColorRules() {
+        const resultDiv = document.getElementById('colorRulesResult');
+        
+        try {
+          const response = await fetch(`${backendUrl}/api/event-color-rules`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rules: colorRulesData })
+          });
+          
+          if (response.ok) {
+            resultDiv.innerText = 'Règles de couleurs enregistrées avec succès !';
+            resultDiv.style.color = '#00ff00';
+          } else {
+            const error = await response.json();
+            resultDiv.innerText = 'Erreur: ' + (error.error || 'Échec de la sauvegarde');
+            resultDiv.style.color = '#ff0000';
+          }
+        } catch (err) {
+          resultDiv.innerText = 'Erreur de connexion: ' + err.message;
+          resultDiv.style.color = '#ff0000';
+        }
+      }
     </script>
 
     <!-- =============================== -->

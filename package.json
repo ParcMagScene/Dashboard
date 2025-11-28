@@ -1,11 +1,21 @@
 {
   "name": "calendar-dashboard",
-  "version": "1.0.0",
-  "private": true,
+  "version": "3.0.0",
+  "description": "Dashboard Calendar avec synchronisation Google Calendar",
+  "main": "server/index.js",
   "scripts": {
-    "dev": "npm run dev --prefix backend"
+    "start": "node server/index.js",
+    "dev": "node server/index.js",
+    "sync": "curl -X POST http://localhost:3001/sync",
+    "status": "lsof -i :3001",
+    "stop": "pkill -f 'node server/index.js'",
+    "restart": "npm run stop && sleep 2 && npm run start",
+    "install-deps": "cd server && npm install"
   },
-  "devDependencies": {
-    "concurrently": "^8.2.2"
+  "keywords": ["calendar", "dashboard", "nodejs", "sqlite"],
+  "author": "Reunion",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
   }
 }

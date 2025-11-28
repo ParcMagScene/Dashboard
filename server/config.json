@@ -40,5 +40,6 @@
   "secondaryColor": "#000000",
   "fontFamily": "Verdana, sans-serif",
   "eventBgColor": "#000000",
-  "eventTextColor": "#ffffff"
+  "eventTextColor": "#ffffff",
+  "showWeather": false
 }
