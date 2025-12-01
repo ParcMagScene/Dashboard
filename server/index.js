@@ -454,14 +454,10 @@ app.get('/api/sonos-now-playing', async (req, res) => {
   }
 });
 
-// Synchronisation iCalendar (désactivée temporairement - fichier sync_ical.js supprimé)
-// const { syncICalendar } = require('./sync_ical.js');
-
-// Fonction stub pour la synchronisation
-async function syncICalendar() {
-  console.log('⚠️  Module de synchronisation non configuré');
-  return 0;
-}
+// ===============================
+//   SYNCHRONISATION AUTOMATIQUE  
+// ===============================
+const { syncICalendar } = require('./sync_ical.js');
 
 // Synchronisation au démarrage
 console.log('🔄 Synchronisation initiale des événements...');
