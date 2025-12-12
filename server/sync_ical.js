@@ -22,7 +22,7 @@ async function fetchICalendar(url) {
   });
 }
 
-// Parser simple pour iCalendar
+// Parser simple pour iCalendar avec génération des occurrences récurrentes
 function parseICalendar(icalData) {
   const events = [];
   const lines = icalData.split(/\r?\n/);
@@ -32,10 +32,16 @@ function parseICalendar(icalData) {
     const line = lines[i].trim();
 
     if (line === 'BEGIN:VEVENT') {
-      currentEvent = { is_recurrent: 0 };
+      currentEvent = { is_recurrent: 0, rrule: null };
     } else if (line === 'END:VEVENT' && currentEvent) {
       if (currentEvent.start && currentEvent.summary) {
-        events.push(currentEvent);
+        // Si l'événement est récurrent, générer les occurrences
+        if (currentEvent.is_recurrent && currentEvent.rrule) {
+          const occurrences = generateRecurrentOccurrences(currentEvent);
+          events.push(...occurrences);
+        } else {
+          events.push(currentEvent);
+        }
       }
       currentEvent = null;
     } else if (currentEvent) {
@@ -59,6 +65,7 @@ function parseICalendar(icalData) {
         currentEvent.description = line.substring(line.indexOf(':') + 1);
       } else if (line.startsWith('RRULE')) {
         currentEvent.is_recurrent = 1;
+        currentEvent.rrule = line.substring(line.indexOf(':') + 1);
       }
     }
   }
@@ -66,18 +73,106 @@ function parseICalendar(icalData) {
   return events;
 }
 
-// Formater une date iCalendar en ISO
-function formatDate(dateStr) {
-  // Format: 20251201T080000 ou 20251201T080000Z
-  if (dateStr.length >= 15) {
-    const year = dateStr.substring(0, 4);
-    const month = dateStr.substring(4, 6);
-    const day = dateStr.substring(6, 8);
-    const hour = dateStr.substring(9, 11);
-    const minute = dateStr.substring(11, 13);
-    const second = dateStr.substring(13, 15);
+// Générer les occurrences pour aujourd'hui et les 7 prochains jours
+function generateRecurrentOccurrences(event) {
+  const occurrences = [];
+  const originalStartStr = event.start; // Chaîne ISO avec l'heure correcte
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Fenêtre de 30 jours (aujourd'hui + 29 jours)
+  const endWindow = new Date(today);
+  endWindow.setDate(endWindow.getDate() + 30);
+  
+  // Parser la règle RRULE
+  const rrule = event.rrule;
+  let freq = null;
+  let byDay = null;
+  
+  if (rrule.includes('FREQ=DAILY')) {
+    freq = 'DAILY';
+  } else if (rrule.includes('FREQ=WEEKLY')) {
+    freq = 'WEEKLY';
+    const byDayMatch = rrule.match(/BYDAY=([A-Z,]+)/);
+    if (byDayMatch) {
+      byDay = byDayMatch[1].split(',');
+    }
+  }
+  
+  // Générer les occurrences
+  const currentDate = new Date(today);
+  
+  while (currentDate <= endWindow) {
+    let shouldInclude = false;
     
-    return `${year}-${month}-${day}T${hour}:${minute}:${second}+01:00`;
+    if (freq === 'DAILY') {
+      shouldInclude = true;
+    } else if (freq === 'WEEKLY' && byDay) {
+      const dayMap = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+      const currentDay = currentDate.getDay();
+      shouldInclude = byDay.some(day => dayMap[day] === currentDay);
+    }
+    
+    if (shouldInclude) {
+      const occurrence = {
+        summary: event.summary,
+        start: formatDateFromDate(currentDate, originalStartStr),
+        location: event.location || '',
+        description: event.description || '',
+        is_recurrent: 1
+      };
+      occurrences.push(occurrence);
+    }
+    
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return occurrences;
+}
+
+// Formater une date JavaScript en ISO avec l'heure de l'événement original
+function formatDateFromDate(date, originalStartStr) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  // Extraire l'heure depuis la chaîne ISO originale (format: 2025-12-12T09:00:00+01:00)
+  const timeMatch = originalStartStr.match(/T(\d{2}):(\d{2}):(\d{2})/);
+  const hour = timeMatch ? timeMatch[1] : '00';
+  const minute = timeMatch ? timeMatch[2] : '00';
+  const second = timeMatch ? timeMatch[3] : '00';
+  
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}+01:00`;
+}
+
+// Formater une date iCalendar en ISO (heure locale Paris)
+function formatDate(dateStr) {
+  // Format: 20251201T080000 ou 20251201T080000Z (UTC)
+  if (dateStr.length >= 15) {
+    let year = parseInt(dateStr.substring(0, 4));
+    let month = parseInt(dateStr.substring(4, 6)) - 1;
+    let day = parseInt(dateStr.substring(6, 8));
+    let hour = parseInt(dateStr.substring(9, 11));
+    let minute = parseInt(dateStr.substring(11, 13));
+    let second = parseInt(dateStr.substring(13, 15));
+    
+    if (dateStr.endsWith('Z')) {
+      // Date UTC - convertir en heure Paris (UTC+1)
+      hour += 1;
+      // Gérer le dépassement d'heure
+      if (hour >= 24) {
+        hour -= 24;
+        day += 1;
+      }
+    }
+    
+    const m = String(month + 1).padStart(2, '0');
+    const d = String(day).padStart(2, '0');
+    const h = String(hour).padStart(2, '0');
+    const min = String(minute).padStart(2, '0');
+    const sec = String(second).padStart(2, '0');
+    
+    return `${year}-${m}-${d}T${h}:${min}:${sec}+01:00`;
   }
   return dateStr;
 }
