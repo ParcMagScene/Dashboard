@@ -243,7 +243,7 @@ body {
 
 header {
   display: grid;
-  grid-template-columns: 1fr 1.5fr 1fr;
+  grid-template-columns: 1fr 1.5fr 1.5fr;
   align-items: center;
   padding: 0em 2em;
   background: var(--secondary-color, #1976d2);
@@ -300,14 +300,15 @@ header {
 /* Date et heure (droite) */
 #date {
   display: block;
-  font-size: 2.2em;
+  font-size: 2.5em;
   white-space: nowrap;
   text-align: right;
 }
 #heure {
   display: block;
-  font-size: 4.2em;
-  margin-top: 0.2em;
+  font-size: 4.5em;
+  font-weight: bold;
+  margin-top: 0.1em;
   text-align: center;
 }
 #datetime {
@@ -605,18 +606,7 @@ body {
   font-size: 2.5em;
 }
 
-/* Date et heure (droite) - Media queries */
-#date {
-  display: block;
-  font-size: 2.2em;
-  text-align: right;
-}
-#heure {
-  display: block;
-  font-size: 4.2em;
-  margin-top: 0.2em;
-  text-align: center;
-}
+/* Date et heure (droite) - déjà définis plus haut */
 #datetime {
   justify-self: end;
   margin-right: 2em;
@@ -754,7 +744,7 @@ footer {
     font-size: 1.05em;
   }
   header {
-    grid-template-columns: 1fr 1.2fr 1.2fr;
+    grid-template-columns: 1fr 1.2fr 1.5fr;
     padding: 0.2em 0.5em;
   }
   #logo {
@@ -764,9 +754,13 @@ footer {
   #welcome {
     font-size: 2em;
   }
-  #date, #heure {
-    font-size: 1.1em;
+  #date {
+    font-size: 1.5em;
     margin-right: 1em;
+  }
+  #heure {
+    font-size: 3.2em;
+    font-weight: bold;
   }
   #weather {
     min-width: 120px;
