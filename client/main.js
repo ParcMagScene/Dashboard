@@ -6,6 +6,12 @@
 // Configuration de base
 const API_BASE = window.location.origin;
 
+// Règles de couleurs chargées depuis l'API
+let colorRules = [];
+
+// Événements terminés
+let completedEvents = [];
+
 // ===============================================
 //  FONCTIONS UTILITAIRES
 // ===============================================
@@ -72,8 +78,51 @@ async function loadWelcomeMessage() {
 // ===============================================
 //  GESTION DES ÉVÉNEMENTS
 // ===============================================
+
+// Charger les événements terminés
+async function loadCompletedEvents() {
+  try {
+    const response = await fetch(`${API_BASE}/api/completed-events`);
+    const data = await response.json();
+    completedEvents = data.completed || [];
+  } catch (error) {
+    console.error('Erreur chargement événements terminés:', error);
+    completedEvents = [];
+  }
+}
+
+// Basculer l'état terminé d'un événement
+async function toggleEventComplete(eventId, li) {
+  const strEventId = String(eventId);
+  const isCompleted = completedEvents.includes(strEventId);
+  const endpoint = isCompleted ? '/api/uncomplete-event' : '/api/complete-event';
+  
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId: strEventId })
+    });
+    
+    if (response.ok) {
+      if (isCompleted) {
+        completedEvents = completedEvents.filter(id => id !== strEventId);
+        li.classList.remove('event-completed');
+      } else {
+        completedEvents.push(strEventId);
+        li.classList.add('event-completed');
+      }
+    }
+  } catch (error) {
+    console.error('Erreur toggle événement:', error);
+  }
+}
+
 async function loadEvents() {
   try {
+    // Charger d'abord les événements terminés
+    await loadCompletedEvents();
+    
     const response = await fetch(`${API_BASE}/api/events`);
     const data = await response.json();
     
@@ -128,8 +177,9 @@ function createEventElement(event) {
   const li = document.createElement('li');
   li.className = 'event-item';
   
-  // Debug des données de l'événement
-  console.log('Événement reçu:', event);
+  // Générer un ID unique pour l'événement - TOUJOURS en string pour cohérence avec l'API
+  const eventId = String(event.id || `${event.title || event.summary}_${event.start}`);
+  li.dataset.eventId = eventId;
   
   // Parsing de la date selon différents formats possibles
   let startTime;
@@ -138,7 +188,6 @@ function createEventElement(event) {
   if (dateValue) {
     startTime = new Date(dateValue);
     if (isNaN(startTime.getTime())) {
-      // Essayer un autre format de parsing si nécessaire
       startTime = new Date();
     }
   } else {
@@ -154,26 +203,60 @@ function createEventElement(event) {
   const eventLocation = event.location || '';
   const eventDescription = event.description || '';
   
-  // Construire l'affichage en colonnes séparées
+  // Vérifier si terminé
+  const isCompleted = completedEvents.includes(eventId);
+  
+  // Construire l'affichage en colonnes séparées (coche dans le titre uniquement si terminé)
   li.innerHTML = `
     <div class="event-columns">
       <div class="col-time">${timeStr}</div>
-      <div class="col-title">${eventTitle}</div>
+      <div class="col-title">${isCompleted ? '<span class="completed-icon">✅</span>' : ''}${eventTitle}</div>
       <div class="col-location">${eventLocation}</div>
       <div class="col-description">${eventDescription}</div>
     </div>
   `;
   
-  // Application des couleurs personnalisées selon vos règles
-  const title = eventTitle ? eventTitle.toLowerCase() : '';
-  const location = event.location ? event.location.toLowerCase() : '';
+  // Marquer comme terminé si c'est le cas
+  if (isCompleted) {
+    li.classList.add('event-completed');
+  }
   
-  if (title.includes('presta') || location.includes('presta')) {
-    li.classList.add('event-presta');
-  } else if (title.includes('loc') || location.includes('loc')) {
-    li.classList.add('event-loc');
-  } else if (title.includes('liv') || location.includes('liv')) {
-    li.classList.add('event-liv');
+  // Ajouter le gestionnaire de clic
+  li.style.cursor = 'pointer';
+  li.addEventListener('click', () => {
+    toggleEventComplete(eventId, li);
+    // Mettre à jour l'affichage après le toggle
+    const titleDiv = li.querySelector('.col-title');
+    if (titleDiv) {
+      const hasIcon = titleDiv.querySelector('.completed-icon');
+      if (li.classList.contains('event-completed')) {
+        // On vient de démarquer -> retirer l'icône
+        if (hasIcon) hasIcon.remove();
+      } else {
+        // On vient de marquer -> ajouter l'icône
+        if (!hasIcon) {
+          titleDiv.insertAdjacentHTML('afterbegin', '<span class="completed-icon">✅</span>');
+        }
+      }
+    }
+  });
+  
+  // Application des couleurs personnalisées depuis les règles de l'API
+  const searchText = `${eventTitle} ${eventLocation}`.toLowerCase();
+  
+  for (const rule of colorRules) {
+    if (searchText.includes(rule.keyword.toLowerCase())) {
+      li.style.setProperty('--event-color', rule.color);
+      if (!li.classList.contains('event-completed')) {
+        li.style.color = rule.color;
+      }
+      break;
+    }
+  }
+  
+  // Clignotement pour les événements urgents (contenant !)
+  if (eventTitle.includes('!') && !isCompleted) {
+    li.classList.add('event-urgent');
   }
   
   return li;
@@ -270,26 +353,10 @@ function getWeatherIcon(iconCode) {
 // ===============================================
 async function loadColorRules() {
   try {
-    const response = await fetch(`${API_BASE}/api/color-rules`);
-    const rules = await response.json();
-    
-    // Application des règles CSS personnalisées
-    let customCSS = '';
-    rules.forEach(rule => {
-      customCSS += `
-        .event-item:contains("${rule.keyword}") {
-          color: ${rule.color} !important;
-        }
-      `;
-    });
-    
-    // Injection du CSS personnalisé
-    if (customCSS) {
-      const style = document.createElement('style');
-      style.textContent = customCSS;
-      document.head.appendChild(style);
-    }
-    
+    const response = await fetch(`${API_BASE}/api/event-color-rules`);
+    const data = await response.json();
+    colorRules = data.rules || [];
+    console.log('Règles de couleurs chargées:', colorRules);
   } catch (error) {
     console.error('Erreur lors du chargement des règles de couleurs:', error);
   }
@@ -298,15 +365,17 @@ async function loadColorRules() {
 // ===============================================
 //  INITIALISATION
 // ===============================================
-function init() {
+async function init() {
   console.log('🚀 Dashboard Calendrier - Initialisation...');
+  
+  // Charger d'abord les règles de couleurs (nécessaire avant les événements)
+  await loadColorRules();
   
   // Mise à jour immédiate
   updateDateTime();
   loadWelcomeMessage();
   loadEvents();
   loadWeather();
-  loadColorRules();
   loadSonosNowPlaying();
   
   // Mise à jour périodique
@@ -396,6 +465,13 @@ function startAutoScroll() {
   setInterval(scroll, 16); // ~60 FPS
 }
 
+// ===============================================
+//  RAFRAÎCHISSEMENT AUTOMATIQUE
+// ===============================================
+// Rafraîchir les événements toutes les 10 secondes pour synchroniser avec l'admin
+setInterval(() => {
+  loadEvents();
+}, 10000);
 
 
 // ===============================================

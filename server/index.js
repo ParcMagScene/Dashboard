@@ -11,6 +11,17 @@ const sqlite3 = require('sqlite3').verbose();
 const DB_PATH = path.join(__dirname, 'calendar.db');
 let db = new sqlite3.Database(DB_PATH);
 
+// Créer la table des événements terminés si elle n'existe pas
+db.run(`
+  CREATE TABLE IF NOT EXISTS completed_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id TEXT NOT NULL,
+    event_date TEXT NOT NULL,
+    completed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(event_id, event_date)
+  )
+`);
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -272,6 +283,58 @@ app.get('/api/events', (req, res) => {
       all: rows // Compatibility avec l'ancien format
     });
   });
+});
+
+// ===============================
+//    ÉVÉNEMENTS TERMINÉS        
+// ===============================
+
+// Récupérer les événements terminés du jour
+app.get('/api/completed-events', (req, res) => {
+  const today = new Date();
+  const dateStr = today.toISOString().split('T')[0];
+  
+  db.all('SELECT event_id FROM completed_events WHERE event_date = ?', [dateStr], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Erreur lors de la récupération' });
+    const completedIds = rows.map(r => r.event_id);
+    res.json({ completed: completedIds });
+  });
+});
+
+// Marquer un événement comme terminé
+app.post('/api/complete-event', (req, res) => {
+  const { eventId } = req.body;
+  if (!eventId) return res.status(400).json({ error: 'eventId requis' });
+  
+  const today = new Date();
+  const dateStr = today.toISOString().split('T')[0];
+  
+  db.run(
+    'INSERT OR IGNORE INTO completed_events (event_id, event_date) VALUES (?, ?)',
+    [eventId, dateStr],
+    function(err) {
+      if (err) return res.status(500).json({ error: 'Erreur lors de la sauvegarde' });
+      res.json({ success: true, eventId });
+    }
+  );
+});
+
+// Démarquer un événement comme terminé
+app.post('/api/uncomplete-event', (req, res) => {
+  const { eventId } = req.body;
+  if (!eventId) return res.status(400).json({ error: 'eventId requis' });
+  
+  const today = new Date();
+  const dateStr = today.toISOString().split('T')[0];
+  
+  db.run(
+    'DELETE FROM completed_events WHERE event_id = ? AND event_date = ?',
+    [eventId, dateStr],
+    function(err) {
+      if (err) return res.status(500).json({ error: 'Erreur lors de la suppression' });
+      res.json({ success: true, eventId });
+    }
+  );
 });
 
 // ===============================

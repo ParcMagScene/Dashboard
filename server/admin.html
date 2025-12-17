@@ -1,200 +1,499 @@
-
-<!-- =============================================== -->
-<!--  Fichier : admin.html (backend)                -->
-<!--  Rôle : Interface d'administration du dashboard -->
-<!--  - Configuration générale                      -->
-<!--  - Messages d'accueil dynamiques               -->
-<!--  - Upload du logo entreprise                   -->
-<!--  Tous les blocs sont commentés pour faciliter la maintenance -->
-<!-- =============================================== -->
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
+<head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
-    <!-- Styles internes pour la page admin -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration</title>
+    
+    <!-- Favicon et icônes pour raccourcis mobile -->
+    <link rel="icon" type="image/png" href="/api/logo">
+    <link rel="apple-touch-icon" href="/api/logo">
+    <meta name="theme-color" content="#00e1ff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Admin">
+    
     <style>
+      * {
+        box-sizing: border-box;
+      }
       body {
         font-family: Arial, sans-serif;
-        margin: 2em;
+        margin: 0;
+        padding: 0;
         background: #000;
         color: #00e1ff;
+        min-height: 100vh;
       }
-      label { display: block; margin-top: 1em; }
+      
+      /* ========== HEADER ========== */
+      .admin-header {
+        background: #111;
+        padding: 10px;
+        text-align: center;
+        border-bottom: 2px solid #00e1ff;
+      }
+      .admin-header img {
+        max-height: 60px;
+        width: auto;
+      }
+      
+      /* ========== ONGLETS ========== */
+      .tabs-container {
+        display: flex;
+        background: #111;
+        border-bottom: 1px solid #333;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .tab-btn {
+        flex: 1;
+        min-width: 80px;
+        padding: 15px 8px;
+        background: transparent;
+        border: none;
+        color: #666;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.3s;
+        white-space: nowrap;
+      }
+      .tab-btn.active {
+        color: #00e1ff;
+        background: rgba(0, 225, 255, 0.1);
+        border-bottom: 3px solid #00e1ff;
+      }
+      .tab-btn:hover {
+        background: rgba(0, 225, 255, 0.05);
+      }
+      
+      /* ========== CONTENU ========== */
+      .tab-content {
+        display: none;
+        padding: 20px;
+        animation: fadeIn 0.3s ease;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      /* ========== FORMULAIRES ========== */
+      .form-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+      }
       input, select, textarea {
-        margin-top: 0.5em;
-        font-family: inherit;
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
         color: #00e1ff;
         background: #222;
         border: 1px solid #00e1ff;
-      }
-      .logo-preview { margin-top: 1em; max-height: 80px; }
-      button {
-        margin-top: 1em;
-        background: #00e1ff;
-        color: #000;
-        border: none;
-        padding: 0.5em 1.5em;
-        font-weight: bold;
         border-radius: 4px;
+      }
+      input[type="color"] {
+        height: 50px;
+        padding: 5px;
         cursor: pointer;
       }
-      button:hover {
-        background: #0090c0;
-      }
-      .days-container {
-        display: flex;
-        gap: 2em;
-        flex-wrap: wrap;
-        margin-bottom: 2em;
-      }
-      .day-block {
-        border: 1px solid #00e1ff;
-        padding: 1em;
-        background: #111;
-        min-width: 220px;
-        flex: 1 1 220px;
-        color: #00e1ff;
-      }
-      h2, h3 {
-        color: #00e1ff;
-      }
-      .color-rule {
-        display: flex;
-        align-items: center;
-        gap: 1em;
-        margin-bottom: 1em;
-        padding: 1em;
-        border: 1px solid #333;
-        background: #111;
-      }
-      .color-rule input[type="text"] {
-        flex: 1;
-        min-width: 120px;
-      }
-      .color-rule input[type="color"] {
-        width: 50px;
-        height: 35px;
-        border: none;
-        cursor: pointer;
-      }
-      .color-rule button {
-        background: #ff3333;
-        color: white;
-        font-size: 0.8em;
-        padding: 0.3em 0.8em;
+      input[type="checkbox"] {
+        width: auto;
+        margin-right: 10px;
       }
       textarea {
-        width: 100%;
-        min-height: 2.5em;
+        min-height: 80px;
         resize: vertical;
       }
+      button {
+        width: 100%;
+        padding: 15px;
+        font-size: 16px;
+        font-weight: bold;
+        color: #000;
+        background: #00e1ff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+      button:hover {
+        background: #00b8d4;
+      }
+      button.danger {
+        background: #ff3333;
+        color: white;
+      }
+      button.secondary {
+        background: #444;
+        color: #00e1ff;
+      }
+      
+      /* ========== SECTIONS ========== */
+      .section {
+        background: #111;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      .section h3 {
+        margin-top: 0;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #333;
+      }
+      
+      /* ========== MESSAGES DYNAMIQUES ========== */
+      .day-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-bottom: 15px;
+      }
+      .day-tab {
+        flex: 1;
+        min-width: 60px;
+        padding: 10px 5px;
+        background: #222;
+        border: 1px solid #333;
+        color: #666;
+        font-size: 12px;
+        cursor: pointer;
+        text-align: center;
+        border-radius: 4px;
+      }
+      .day-tab.active {
+        background: #00e1ff;
+        color: #000;
+        border-color: #00e1ff;
+      }
+      .day-content {
+        display: none;
+      }
+      .day-content.active {
+        display: block;
+      }
+      
+      /* ========== RÈGLES COULEURS ========== */
+      .color-rule {
+        background: #222;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+      }
+      .color-rule-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .color-rule-row input[type="text"] {
+        flex: 1;
+        min-width: 100px;
+      }
+      .color-rule-row input[type="color"] {
+        width: 60px;
+        flex-shrink: 0;
+      }
+      .color-rule-row button {
+        width: auto;
+        padding: 10px 15px;
+        margin: 0;
+      }
+      
+      /* ========== LOGO ========== */
+      .logo-preview {
+        max-width: 200px;
+        max-height: 100px;
+        margin-top: 15px;
+        border: 1px solid #333;
+        border-radius: 4px;
+      }
+      
+      /* ========== RÉSULTATS ========== */
+      .result-message {
+        padding: 10px;
+        border-radius: 4px;
+        margin-top: 10px;
+        text-align: center;
+      }
+      .result-message.success {
+        background: rgba(0, 255, 0, 0.1);
+        color: #00ff00;
+      }
+      .result-message.error {
+        background: rgba(255, 0, 0, 0.1);
+        color: #ff3333;
+      }
+      
+      /* ========== LISTE ÉVÉNEMENTS ADMIN ========== */
+      .events-list {
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .admin-event {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: #222;
+        border: 1px solid #333;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .admin-event:hover {
+        background: #2a2a2a;
+        border-color: #00e1ff;
+      }
+      .admin-event.completed {
+        opacity: 0.5;
+        text-decoration: line-through;
+        background: #1a1a1a;
+      }
+      .admin-event .check {
+        font-size: 1.3em;
+        flex-shrink: 0;
+      }
+      .admin-event .time {
+        color: #00e1ff;
+        font-weight: bold;
+        min-width: 60px;
+      }
+      .admin-event .title {
+        flex: 1;
+      }
+      .admin-event .location {
+        color: #888;
+        font-size: 0.9em;
+      }
+      .no-events {
+        color: #666;
+        font-style: italic;
+        padding: 15px;
+        text-align: center;
+      }
+      
+      /* ========== RESPONSIVE ========== */
+      @media (min-width: 768px) {
+        .tabs-container {
+          justify-content: center;
+          overflow-x: hidden; /* Pas de scrollbar sur PC */
+        }
+        .tab-btn {
+          flex: 1;
+          max-width: 140px;
+          min-width: auto;
+        }
+        .tab-content {
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        .day-tabs {
+          flex-wrap: nowrap;
+        }
+      }
     </style>
-  </head>
-  <body>
-  <!-- =============================== -->
-  <!-- Titre principal -->
-  <!-- NOTE : Les éléments header, logo, message dynamique, date/heure et footer sont identiques à index.html. Mutualisation recommandée via composant ou inclusion. -->
-  <h1>Administration du Dashboard</h1>
+</head>
+<body>
+    <header class="admin-header">
+        <img src="/api/logo" alt="Logo" id="headerLogo">
+    </header>
 
-    <!-- =============================== -->
-    <!-- Formulaire de configuration générale -->
-    <form id="configForm">
-      <label style="margin-top:2em;display:block;">
-        <input type="checkbox" id="scrollToggle" checked>
-        Activer le défilement automatique des événements
-      </label>
-      <label style="margin-top:1em;display:block;">
-        <input type="checkbox" id="showWeatherToggle">
-        Afficher la météo
-      </label>
-      <!-- Champ Message d'accueil supprimé : désormais géré uniquement par les messages dynamiques -->
-      <label>
-        Couleur principale :
-        <input type="color" name="primaryColor" id="primaryColor">
-      </label>
-      <label>
-        Couleur secondaire :
-        <input type="color" name="secondaryColor" id="secondaryColor">
-      </label>
-      <label>
-        Police :
-        <select name="fontFamily" id="fontFamily">
-          <option value="Arial, sans-serif">Arial</option>
-          <option value="Verdana, sans-serif">Verdana</option>
-          <option value="Tahoma, sans-serif">Tahoma</option>
-          <option value="Georgia, serif">Georgia</option>
-        </select>
-      </label>
-      <label>
-        Couleur fond événement :
-        <input type="color" name="eventBgColor" id="eventBgColor">
-      </label>
-      <label>
-        Couleur texte événement :
-        <input type="color" name="eventTextColor" id="eventTextColor">
-      </label>
-      <button type="submit">Enregistrer</button>
-    </form>
+    <!-- Navigation par onglets -->
+    <nav class="tabs-container">
+        <button class="tab-btn active" data-tab="events">📋 Événements</button>
+        <button class="tab-btn" data-tab="config">🎨 Apparence</button>
+        <button class="tab-btn" data-tab="messages">💬 Messages</button>
+        <button class="tab-btn" data-tab="colors">🏷️ Couleurs</button>
+        <button class="tab-btn" data-tab="logo">🖼️ Logo</button>
+        <button class="tab-btn" data-tab="sync">🔄 Sync</button>
+    </nav>
 
-    <!-- =============================== -->
-    <!-- Formulaire des messages d'accueil dynamiques -->
-    <h2>Messages d'accueil dynamiques</h2>
-    <form id="welcomeMessagesForm">
-      <div id="welcomeMessagesContent"></div>
-      <button type="submit">Enregistrer les messages dynamiques</button>
-    </form>
-    <div id="welcomeMessagesResult"></div>
-    <hr>
-
-    <!-- =============================== -->
-    <!-- Gestion des couleurs d'événements -->
-    <h2>Couleurs des événements par mots-clés</h2>
-    <p>Configurez les couleurs d'affichage des événements selon les mots-clés présents dans le champ "lieu".</p>
-    
-    <div id="colorRulesContainer">
-      <!-- Les règles seront générées dynamiquement -->
+    <!-- ==================== ONGLET ÉVÉNEMENTS ==================== -->
+    <div class="tab-content active" id="tab-events">
+        <div class="section">
+            <h3>📋 Événements du jour</h3>
+            <p style="color:#888; font-size:14px;">Cliquez sur un événement pour le marquer comme terminé.</p>
+            
+            <h4 style="margin-top:20px;">🗓️ Événements ponctuels</h4>
+            <div id="adminRegularEvents" class="events-list"></div>
+            
+            <h4 style="margin-top:20px;">🔄 Événements récurrents</h4>
+            <div id="adminRecurrentEvents" class="events-list"></div>
+            
+            <button onclick="loadAdminEvents()" style="margin-top:20px;">🔄 Rafraîchir</button>
+            <div id="eventsResult" class="result-message" style="display:none;"></div>
+        </div>
     </div>
-    
-    <button onclick="addColorRule()">+ Ajouter une règle</button>
-    <button onclick="saveColorRules()">Enregistrer les règles de couleurs</button>
-    <div id="colorRulesResult"></div>
-    <hr>
 
-    <!-- =============================== -->
-    <!-- Formulaire d'upload du logo entreprise -->
-    <h2>Logo entreprise</h2>
-    <form id="logoForm" enctype="multipart/form-data">
-      <input type="file" name="logo" id="logoInput" accept="image/*">
-      <button type="submit">Uploader le logo</button>
-    </form>
-    <img id="logoPreview" class="logo-preview" src="" alt="Logo actuel">
+    <!-- ==================== ONGLET CONFIG ==================== -->
+    <div class="tab-content" id="tab-config">
+        <div class="section">
+            <h3>🎨 Configuration de l'apparence</h3>
+            <form id="configForm">
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="showWeatherToggle">
+                        Afficher la météo
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="scrollToggle" checked>
+                        Défilement automatique des événements
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>Couleur principale</label>
+                    <input type="color" id="primaryColor" value="#00e1ff">
+                </div>
+                <div class="form-group">
+                    <label>Couleur secondaire</label>
+                    <input type="color" id="secondaryColor" value="#000000">
+                </div>
+                <div class="form-group">
+                    <label>Couleur fond événements</label>
+                    <input type="color" id="eventBgColor" value="#000000">
+                </div>
+                <div class="form-group">
+                    <label>Couleur texte événements</label>
+                    <input type="color" id="eventTextColor" value="#ffffff">
+                </div>
+                <div class="form-group">
+                    <label>Police</label>
+                    <select id="fontFamily">
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="Verdana, sans-serif">Verdana</option>
+                        <option value="Tahoma, sans-serif">Tahoma</option>
+                        <option value="Georgia, serif">Georgia</option>
+                    </select>
+                </div>
+                <button type="submit">💾 Enregistrer</button>
+            </form>
+            <div id="configResult" class="result-message" style="display:none;"></div>
+        </div>
+    </div>
 
-    <!-- =============================== -->
-    <!-- Script principal de gestion admin -->
+    <!-- ==================== ONGLET MESSAGES ==================== -->
+    <div class="tab-content" id="tab-messages">
+        <div class="section">
+            <h3>💬 Messages d'accueil dynamiques</h3>
+            <p style="color:#888; font-size:14px;">Configurez les messages affichés selon le jour et le créneau horaire.</p>
+            
+            <!-- Sous-onglets par jour -->
+            <div class="day-tabs">
+                <button class="day-tab active" data-day="lundi">Lun</button>
+                <button class="day-tab" data-day="mardi">Mar</button>
+                <button class="day-tab" data-day="mercredi">Mer</button>
+                <button class="day-tab" data-day="jeudi">Jeu</button>
+                <button class="day-tab" data-day="vendredi">Ven</button>
+            </div>
+            
+            <form id="welcomeMessagesForm">
+                <div id="messagesContainer"></div>
+                <button type="submit">💾 Enregistrer les messages</button>
+            </form>
+            <div id="messagesResult" class="result-message" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- ==================== ONGLET COULEURS ==================== -->
+    <div class="tab-content" id="tab-colors">
+        <div class="section">
+            <h3>🏷️ Règles de couleurs</h3>
+            <p style="color:#888; font-size:14px;">Définissez les couleurs d'affichage des événements selon les mots-clés.</p>
+            
+            <div id="colorRulesContainer"></div>
+            
+            <button class="secondary" onclick="addColorRule()">➕ Ajouter une règle</button>
+            <button onclick="saveColorRules()">💾 Enregistrer les règles</button>
+            <div id="colorRulesResult" class="result-message" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- ==================== ONGLET LOGO ==================== -->
+    <div class="tab-content" id="tab-logo">
+        <div class="section">
+            <h3>🖼️ Logo de l'entreprise</h3>
+            <form id="logoForm">
+                <div class="form-group">
+                    <label>Sélectionner une image</label>
+                    <input type="file" id="logoInput" accept="image/*">
+                </div>
+                <button type="submit">📤 Uploader le logo</button>
+            </form>
+            <div id="logoResult" class="result-message" style="display:none;"></div>
+            <p style="margin-top:20px; color:#888;">Logo actuel :</p>
+            <img id="logoPreview" class="logo-preview" src="/api/logo" alt="Logo actuel">
+        </div>
+    </div>
+
+    <!-- ==================== ONGLET SYNC ==================== -->
+    <div class="tab-content" id="tab-sync">
+        <div class="section">
+            <h3>🔄 Synchronisation</h3>
+            <p style="color:#888; font-size:14px;">Forcez une synchronisation immédiate du calendrier Google.</p>
+            <button onclick="forceSync()">🔄 Synchroniser maintenant</button>
+            <div id="syncResult" class="result-message" style="display:none;"></div>
+        </div>
+    </div>
+
     <script>
-      // URL du backend
       const backendUrl = location.origin;
-      // Jours et créneaux pour les messages dynamiques
       const days = ["lundi", "mardi", "mercredi", "jeudi", "vendredi"];
       const slots = [
-        { id: "matin", label: "Matin (06:00-09:30)" },
-        { id: "matinee", label: "Matinée (09:30-12:00)" },
-        { id: "midi", label: "Midi (12:00-13:00)" },
-        { id: "apres_midi", label: "Après-midi (13:00-18:00)" },
-        { id: "soir", label: "Soir (18:00-06:00)" }
+        { id: "matin", label: "Matin (06h-09h30)" },
+        { id: "matinee", label: "Matinée (09h30-12h)" },
+        { id: "midi", label: "Midi (12h-13h)" },
+        { id: "apres_midi", label: "Après-midi (13h-18h)" },
+        { id: "soir", label: "Soir (18h-06h)" }
       ];
+      let colorRulesData = [];
+      let welcomeMessagesData = {};
 
-      // -------------------------------------------------
-      // Récupère la configuration actuelle
-      async function fetchConfig() {
+      // ========== NAVIGATION ONGLETS ==========
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+        });
+      });
+
+      // ========== NAVIGATION JOURS ==========
+      document.querySelectorAll('.day-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.day-tab').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.day-content').forEach(c => c.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('day-' + btn.dataset.day).classList.add('active');
+        });
+      });
+
+      // ========== CONFIGURATION ==========
+      async function loadConfig() {
         const res = await fetch(`${backendUrl}/api/config`);
-        return res.json();
+        const config = await res.json();
+        document.getElementById('primaryColor').value = config.primaryColor || '#00e1ff';
+        document.getElementById('secondaryColor').value = config.secondaryColor || '#000000';
+        document.getElementById('fontFamily').value = config.fontFamily || 'Arial, sans-serif';
+        document.getElementById('eventBgColor').value = config.eventBgColor || '#000000';
+        document.getElementById('eventTextColor').value = config.eventTextColor || '#ffffff';
+        document.getElementById('showWeatherToggle').checked = config.showWeather || false;
       }
 
-      // -------------------------------------------------
-      // Met à jour la configuration générale
-      async function updateConfig(e) {
+      document.getElementById('configForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const data = {
           primaryColor: document.getElementById('primaryColor').value,
@@ -209,218 +508,263 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
-        alert('Configuration enregistrée !');
-      }
-
-      // -------------------------------------------------
-      // Affiche le logo actuel
-      async function fetchLogo() {
-        document.getElementById('logoPreview').src = `${backendUrl}/api/logo`;
-      }
-
-      // -------------------------------------------------
-      // Upload du logo entreprise
-      async function uploadLogo(e) {
-        e.preventDefault();
-        const formData = new FormData();
-        formData.append('logo', document.getElementById('logoInput').files[0]);
-        await fetch(`${backendUrl}/api/logo`, {
-          method: 'POST',
-          body: formData
-        });
-        fetchLogo();
-        alert('Logo mis à jour !');
-      }
-
-      // -------------------------------------------------
-      // Récupère les messages dynamiques
-      async function fetchWelcomeMessages() {
-        const res = await fetch(`${backendUrl}/api/welcome-messages`);
-        const data = await res.json();
-        return data.welcomeMessages || {};
-      }
-
-      // -------------------------------------------------
-      // Construit le formulaire des messages dynamiques
-      function buildWelcomeMessagesForm(messages) {
-        const container = document.getElementById('welcomeMessagesContent');
-        container.innerHTML = '';
-        const daysRow = document.createElement('div');
-        daysRow.className = 'days-container';
-        days.forEach(day => {
-          const block = document.createElement('div');
-          block.className = 'day-block';
-          block.innerHTML = `<h3>${day}</h3>`;
-          slots.forEach(slot => {
-            const val = messages?.[day]?.[slot.id] || '';
-            block.innerHTML += `
-              <label for="${day}_${slot.id}">${slot.label}</label>
-              <textarea id="${day}_${slot.id}" name="${day}_${slot.id}">${val}</textarea>
-            `;
-          });
-          daysRow.appendChild(block);
-        });
-        container.appendChild(daysRow);
-      }
-
-      // -------------------------------------------------
-      // Initialisation de la page admin
-      document.addEventListener('DOMContentLoaded', async () => {
-        // Remplir le formulaire de config
-        const config = await fetchConfig();
-        document.getElementById('primaryColor').value = config.primaryColor || '#1976d2';
-        document.getElementById('secondaryColor').value = config.secondaryColor || '#ffffff';
-        document.getElementById('fontFamily').value = config.fontFamily || 'Arial, sans-serif';
-        document.getElementById('eventBgColor').value = config.eventBgColor || '#f5f5f5';
-        document.getElementById('eventTextColor').value = config.eventTextColor || '#222222';
-        document.getElementById('showWeatherToggle').checked = config.showWeather !== undefined ? config.showWeather : false;
-        fetchLogo();
-
-        // Remplir le formulaire des messages dynamiques
-        const messages = await fetchWelcomeMessages();
-        buildWelcomeMessagesForm(messages);
-
-        // Gestion des formulaires
-        document.getElementById('configForm').addEventListener('submit', updateConfig);
-        document.getElementById('logoForm').addEventListener('submit', uploadLogo);
-
-        document.getElementById('welcomeMessagesForm').onsubmit = async (e) => {
-          e.preventDefault();
-          const welcomeMessages = {};
-          days.forEach(day => {
-            welcomeMessages[day] = {};
-            slots.forEach(slot => {
-              welcomeMessages[day][slot.id] = document.getElementById(`${day}_${slot.id}`).value;
-            });
-          });
-          try {
-            const response = await fetch(`${backendUrl}/api/welcome-messages`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ welcomeMessages })
-            });
-            
-            if (response.ok) {
-              const result = await response.json();
-              document.getElementById('welcomeMessagesResult').innerText = 'Messages d\'accueil enregistrés avec succès !';
-              document.getElementById('welcomeMessagesResult').style.color = '#00ff00';
-            } else {
-              const error = await response.json();
-              document.getElementById('welcomeMessagesResult').innerText = 'Erreur: ' + (error.error || 'Échec de la sauvegarde');
-              document.getElementById('welcomeMessagesResult').style.color = '#ff0000';
-            }
-          } catch (err) {
-            document.getElementById('welcomeMessagesResult').innerText = 'Erreur de connexion: ' + err.message;
-            document.getElementById('welcomeMessagesResult').style.color = '#ff0000';
-          }
-        };
-
-        // Gestion du toggle défilement : sauvegarde dans localStorage
-        const scrollToggle = document.getElementById('scrollToggle');
-        if (localStorage.getItem('scrollEnabled') === 'false') {
-          scrollToggle.checked = false;
-        }
-        scrollToggle.addEventListener('change', () => {
-          localStorage.setItem('scrollEnabled', scrollToggle.checked ? 'true' : 'false');
-        });
-
-        // Charger les règles de couleurs au démarrage
-        loadColorRules();
+        showResult('configResult', 'Configuration enregistrée !', true);
       });
 
-      // ===============================
-      // Fonctions de gestion des règles de couleurs
-      // ===============================
-
-      let colorRulesData = [];
-
-      // Charger les règles existantes
-      async function loadColorRules() {
-        try {
-          const response = await fetch(`${backendUrl}/api/event-color-rules`);
-          const data = await response.json();
-          colorRulesData = data.rules || [];
-          renderColorRules();
-        } catch (err) {
-          console.error('Erreur lors du chargement des règles:', err);
-          // Règles par défaut
-          colorRulesData = [
-            { keyword: 'presta', color: '#0074d9', description: 'Prestation - Bleu' },
-            { keyword: 'loc', color: '#2ecc40', description: 'Location - Vert' },
-            { keyword: 'liv', color: '#FFD600', description: 'Livraison - Jaune' }
-          ];
-          renderColorRules();
-        }
+      // ========== MESSAGES DYNAMIQUES ==========
+      async function loadWelcomeMessages() {
+        const res = await fetch(`${backendUrl}/api/welcome-messages`);
+        const data = await res.json();
+        welcomeMessagesData = data.welcomeMessages || {};
+        renderMessagesForm();
       }
 
-      // Afficher les règles dans l'interface
+      function renderMessagesForm() {
+        const container = document.getElementById('messagesContainer');
+        container.innerHTML = '';
+        
+        days.forEach(day => {
+          const dayDiv = document.createElement('div');
+          dayDiv.className = 'day-content' + (day === 'lundi' ? ' active' : '');
+          dayDiv.id = 'day-' + day;
+          
+          let html = '';
+          slots.forEach(slot => {
+            const val = welcomeMessagesData?.[day]?.[slot.id] || '';
+            html += `
+              <div class="form-group">
+                <label>${slot.label}</label>
+                <textarea id="${day}_${slot.id}" placeholder="Message pour ${slot.label.toLowerCase()}...">${val}</textarea>
+              </div>
+            `;
+          });
+          dayDiv.innerHTML = html;
+          container.appendChild(dayDiv);
+        });
+      }
+
+      document.getElementById('welcomeMessagesForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const messages = {};
+        days.forEach(day => {
+          messages[day] = {};
+          slots.forEach(slot => {
+            messages[day][slot.id] = document.getElementById(`${day}_${slot.id}`).value;
+          });
+        });
+        
+        const res = await fetch(`${backendUrl}/api/welcome-messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ welcomeMessages: messages })
+        });
+        showResult('messagesResult', res.ok ? 'Messages enregistrés !' : 'Erreur', res.ok);
+      });
+
+      // ========== RÈGLES COULEURS ==========
+      async function loadColorRules() {
+        try {
+          const res = await fetch(`${backendUrl}/api/event-color-rules`);
+          const data = await res.json();
+          colorRulesData = data.rules || [];
+        } catch (err) {
+          colorRulesData = [];
+        }
+        renderColorRules();
+      }
+
       function renderColorRules() {
         const container = document.getElementById('colorRulesContainer');
         container.innerHTML = '';
         
         colorRulesData.forEach((rule, index) => {
-          const ruleDiv = document.createElement('div');
-          ruleDiv.className = 'color-rule';
-          ruleDiv.innerHTML = `
-            <input type="text" placeholder="Mot-clé (ex: presta)" value="${rule.keyword}" 
-                   onchange="updateRule(${index}, 'keyword', this.value)">
-            <input type="color" value="${rule.color}" 
-                   onchange="updateRule(${index}, 'color', this.value)">
-            <input type="text" placeholder="Description (optionnel)" value="${rule.description || ''}" 
-                   onchange="updateRule(${index}, 'description', this.value)">
-            <button onclick="removeRule(${index})">Supprimer</button>
+          container.innerHTML += `
+            <div class="color-rule">
+              <div class="color-rule-row">
+                <input type="text" placeholder="Mot-clé" value="${rule.keyword || ''}" 
+                       onchange="colorRulesData[${index}].keyword = this.value">
+                <input type="color" value="${rule.color || '#ffffff'}" 
+                       onchange="colorRulesData[${index}].color = this.value">
+                <button class="danger" onclick="removeRule(${index})" style="width:auto;">🗑️</button>
+              </div>
+              <input type="text" placeholder="Description (optionnel)" value="${rule.description || ''}" 
+                     onchange="colorRulesData[${index}].description = this.value" style="margin-top:10px;">
+            </div>
           `;
-          container.appendChild(ruleDiv);
         });
       }
 
-      // Ajouter une nouvelle règle
       function addColorRule() {
-        colorRulesData.push({ keyword: '', color: '#000000', description: '' });
+        colorRulesData.push({ keyword: '', color: '#00e1ff', description: '' });
         renderColorRules();
       }
 
-      // Mettre à jour une règle
-      function updateRule(index, field, value) {
-        if (colorRulesData[index]) {
-          colorRulesData[index][field] = value;
-        }
-      }
-
-      // Supprimer une règle
       function removeRule(index) {
         colorRulesData.splice(index, 1);
         renderColorRules();
       }
 
-      // Sauvegarder les règles
       async function saveColorRules() {
-        const resultDiv = document.getElementById('colorRulesResult');
+        const res = await fetch(`${backendUrl}/api/event-color-rules`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rules: colorRulesData })
+        });
+        showResult('colorRulesResult', res.ok ? 'Règles enregistrées !' : 'Erreur', res.ok);
+      }
+
+      // ========== LOGO ==========
+      document.getElementById('logoForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const file = document.getElementById('logoInput').files[0];
+        if (!file) {
+          showResult('logoResult', 'Veuillez sélectionner un fichier', false);
+          return;
+        }
+        const formData = new FormData();
+        formData.append('logo', file);
+        const res = await fetch(`${backendUrl}/api/logo`, {
+          method: 'POST',
+          body: formData
+        });
+        if (res.ok) {
+          document.getElementById('logoPreview').src = '/api/logo?' + Date.now();
+          showResult('logoResult', 'Logo mis à jour !', true);
+        } else {
+          showResult('logoResult', 'Erreur lors de l\'upload', false);
+        }
+      });
+
+      // ========== SYNCHRONISATION ==========
+      async function forceSync() {
+        const btn = event.target;
+        btn.disabled = true;
+        btn.textContent = '⏳ Synchronisation...';
         
         try {
-          const response = await fetch(`${backendUrl}/api/event-color-rules`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rules: colorRulesData })
-          });
-          
-          if (response.ok) {
-            resultDiv.innerText = 'Règles de couleurs enregistrées avec succès !';
-            resultDiv.style.color = '#00ff00';
-          } else {
-            const error = await response.json();
-            resultDiv.innerText = 'Erreur: ' + (error.error || 'Échec de la sauvegarde');
-            resultDiv.style.color = '#ff0000';
-          }
+          const res = await fetch(`${backendUrl}/api/sync`, { method: 'POST' });
+          const data = await res.json();
+          showResult('syncResult', res.ok ? 'Synchronisation réussie !' : 'Erreur: ' + data.error, res.ok);
         } catch (err) {
-          resultDiv.innerText = 'Erreur de connexion: ' + err.message;
-          resultDiv.style.color = '#ff0000';
+          showResult('syncResult', 'Erreur de connexion', false);
+        }
+        
+        btn.disabled = false;
+        btn.textContent = '🔄 Synchroniser maintenant';
+      }
+
+      // ========== GESTION DES ÉVÉNEMENTS ==========
+      let adminCompletedEvents = [];
+      
+      async function loadAdminEvents() {
+        try {
+          // Charger les événements
+          const eventsRes = await fetch(`${backendUrl}/api/events`);
+          const eventsData = await eventsRes.json();
+          
+          // Charger les événements terminés
+          const completedRes = await fetch(`${backendUrl}/api/completed-events`);
+          const completedData = await completedRes.json();
+          adminCompletedEvents = completedData.completed || [];
+          
+          // Afficher les événements réguliers
+          const regularContainer = document.getElementById('adminRegularEvents');
+          const regularEvents = eventsData.regular || [];
+          
+          if (regularEvents.length === 0) {
+            regularContainer.innerHTML = '<div class="no-events">Aucun événement ponctuel aujourd\'hui</div>';
+          } else {
+            regularContainer.innerHTML = regularEvents.map(e => renderAdminEvent(e)).join('');
+          }
+          
+          // Afficher les événements récurrents
+          const recurrentContainer = document.getElementById('adminRecurrentEvents');
+          const recurrentEvents = eventsData.recurrent || [];
+          
+          if (recurrentEvents.length === 0) {
+            recurrentContainer.innerHTML = '<div class="no-events">Aucun événement récurrent aujourd\'hui</div>';
+          } else {
+            recurrentContainer.innerHTML = recurrentEvents.map(e => renderAdminEvent(e)).join('');
+          }
+          
+        } catch (err) {
+          console.error('Erreur chargement événements:', err);
+          showResult('eventsResult', 'Erreur de chargement', false);
         }
       }
-    </script>
+      
+      function renderAdminEvent(event) {
+        const eventId = String(event.id || `${event.title || event.summary}_${event.start}`);
+        const isCompleted = adminCompletedEvents.includes(eventId);
+        const startTime = new Date(event.start);
+        const timeStr = startTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        const title = event.title || event.summary || 'Sans titre';
+        const location = event.location || '';
+        
+        return `
+          <div class="admin-event ${isCompleted ? 'completed' : ''}" 
+               onclick="toggleAdminEvent('${eventId}', this)"
+               data-event-id="${eventId}">
+            <span class="check">${isCompleted ? '✅' : '⬜'}</span>
+            <span class="time">${timeStr}</span>
+            <span class="title">${title}</span>
+            ${location ? `<span class="location">📍 ${location}</span>` : ''}
+          </div>
+        `;
+      }
+      
+      async function toggleAdminEvent(eventId, element) {
+        const strEventId = String(eventId);
+        const isCompleted = adminCompletedEvents.includes(strEventId);
+        const endpoint = isCompleted ? '/api/uncomplete-event' : '/api/complete-event';
+        
+        try {
+          const res = await fetch(`${backendUrl}${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ eventId: strEventId })
+          });
+          
+          if (res.ok) {
+            if (isCompleted) {
+              adminCompletedEvents = adminCompletedEvents.filter(id => id !== strEventId);
+              element.classList.remove('completed');
+              element.querySelector('.check').textContent = '⬜';
+            } else {
+              adminCompletedEvents.push(strEventId);
+              element.classList.add('completed');
+              element.querySelector('.check').textContent = '✅';
+            }
+            showResult('eventsResult', isCompleted ? 'Événement réactivé' : 'Événement terminé !', true);
+          }
+        } catch (err) {
+          showResult('eventsResult', 'Erreur lors de la mise à jour', false);
+        }
+      }
 
-    <!-- =============================== -->
-    <!-- Bouton d'authentification Spotify (optionnel) -->
-    <div id="spotify-auth-btn" style="text-align:center; margin:2em 0;"></div>
-  </body>
+      // ========== UTILITAIRES ==========
+      function showResult(elementId, message, success) {
+        const el = document.getElementById(elementId);
+        el.textContent = message;
+        el.className = 'result-message ' + (success ? 'success' : 'error');
+        el.style.display = 'block';
+        setTimeout(() => { el.style.display = 'none'; }, 3000);
+      }
+
+      // ========== INITIALISATION ==========
+      document.addEventListener('DOMContentLoaded', () => {
+        loadAdminEvents(); // Charger les événements au démarrage
+        loadConfig();
+        loadWelcomeMessages();
+        loadColorRules();
+        
+        // Scroll toggle
+        const scrollToggle = document.getElementById('scrollToggle');
+        scrollToggle.checked = localStorage.getItem('scrollEnabled') !== 'false';
+        scrollToggle.addEventListener('change', () => {
+          localStorage.setItem('scrollEnabled', scrollToggle.checked);
+        });
+      });
+    </script>
+</body>
 </html>
