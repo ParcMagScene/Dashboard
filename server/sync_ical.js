@@ -32,7 +32,7 @@ function parseICalendar(icalData) {
     const line = lines[i].trim();
 
     if (line === 'BEGIN:VEVENT') {
-      currentEvent = { is_recurrent: 0, rrule: null };
+      currentEvent = { is_recurrent: 0, rrule: null, uid: null };
     } else if (line === 'END:VEVENT' && currentEvent) {
       if (currentEvent.start && currentEvent.summary) {
         // Si l'événement est récurrent, générer les occurrences
@@ -40,6 +40,8 @@ function parseICalendar(icalData) {
           const occurrences = generateRecurrentOccurrences(currentEvent);
           events.push(...occurrences);
         } else {
+          // Générer un UID stable basé sur summary + start
+          currentEvent.uid = generateStableUID(currentEvent.summary, currentEvent.start);
           events.push(currentEvent);
         }
       }
@@ -63,6 +65,8 @@ function parseICalendar(icalData) {
         currentEvent.location = line.substring(line.indexOf(':') + 1);
       } else if (line.startsWith('DESCRIPTION')) {
         currentEvent.description = line.substring(line.indexOf(':') + 1);
+      } else if (line.startsWith('UID:')) {
+        currentEvent.uid = line.substring(4);
       } else if (line.startsWith('RRULE')) {
         currentEvent.is_recurrent = 1;
         currentEvent.rrule = line.substring(line.indexOf(':') + 1);
@@ -71,6 +75,18 @@ function parseICalendar(icalData) {
   }
 
   return events;
+}
+
+// Générer un UID stable basé sur le summary et la date
+function generateStableUID(summary, start) {
+  const str = `${summary}_${start}`;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return `evt_${Math.abs(hash)}`;
 }
 
 // Générer les occurrences pour aujourd'hui et les 7 prochains jours
@@ -114,12 +130,14 @@ function generateRecurrentOccurrences(event) {
     }
     
     if (shouldInclude) {
+      const startStr = formatDateFromDate(currentDate, originalStartStr);
       const occurrence = {
         summary: event.summary,
-        start: formatDateFromDate(currentDate, originalStartStr),
+        start: startStr,
         location: event.location || '',
         description: event.description || '',
-        is_recurrent: 1
+        is_recurrent: 1,
+        uid: generateStableUID(event.summary, startStr)
       };
       occurrences.push(occurrence);
     }
@@ -147,7 +165,7 @@ function formatDateFromDate(date, originalStartStr) {
 
 // Formater une date iCalendar en ISO (heure locale Paris)
 function formatDate(dateStr) {
-  // Format: 20251201T080000 ou 20251201T080000Z (UTC)
+  // Format avec heure: 20251201T080000 ou 20251201T080000Z (UTC)
   if (dateStr.length >= 15) {
     let year = parseInt(dateStr.substring(0, 4));
     let month = parseInt(dateStr.substring(4, 6)) - 1;
@@ -174,6 +192,16 @@ function formatDate(dateStr) {
     
     return `${year}-${m}-${d}T${h}:${min}:${sec}+01:00`;
   }
+  
+  // Format "toute la journée": 20251222 (8 caractères, sans heure)
+  if (dateStr.length === 8) {
+    const year = dateStr.substring(0, 4);
+    const month = dateStr.substring(4, 6);
+    const day = dateStr.substring(6, 8);
+    // Mettre à 00:00:00 pour les événements toute la journée
+    return `${year}-${month}-${day}T00:00:00+01:00`;
+  }
+  
   return dateStr;
 }
 
@@ -198,6 +226,10 @@ async function syncICalendar() {
     const events = parseICalendar(icalData);
     console.log(`📋 ${events.length} événement(s) trouvé(s)`);
 
+    // NOTE: Les événements terminés sont stockés dans la table completed_events
+    // avec l'UID stable comme identifiant. Ils sont préservés automatiquement
+    // car on ne touche pas à cette table lors de la synchro.
+
     // Supprimer les anciens événements
     await new Promise((resolve, reject) => {
       db.run('DELETE FROM events', (err) => {
@@ -211,13 +243,14 @@ async function syncICalendar() {
     for (const event of events) {
       await new Promise((resolve, reject) => {
         db.run(
-          'INSERT INTO events (summary, start, location, description, is_recurrent) VALUES (?, ?, ?, ?, ?)',
+          'INSERT INTO events (summary, start, location, description, is_recurrent, uid) VALUES (?, ?, ?, ?, ?, ?)',
           [
             event.summary || '',
             event.start || '',
             event.location || '',
             event.description || '',
-            event.is_recurrent || 0
+            event.is_recurrent || 0,
+            event.uid || ''
           ],
           (err) => {
             if (err) {

@@ -316,6 +316,7 @@
         <button class="tab-btn" data-tab="messages">💬 Messages</button>
         <button class="tab-btn" data-tab="colors">🏷️ Couleurs</button>
         <button class="tab-btn" data-tab="logo">🖼️ Logo</button>
+        <button class="tab-btn" data-tab="photo">📸 Photo</button>
         <button class="tab-btn" data-tab="sync">🔄 Sync</button>
     </nav>
 
@@ -435,6 +436,41 @@
             <div id="logoResult" class="result-message" style="display:none;"></div>
             <p style="margin-top:20px; color:#888;">Logo actuel :</p>
             <img id="logoPreview" class="logo-preview" src="/api/logo" alt="Logo actuel">
+        </div>
+    </div>
+
+    <!-- ==================== ONGLET PHOTO FURTIVE ==================== -->
+    <div class="tab-content" id="tab-photo">
+        <div class="section">
+            <h3>📸 Photo furtive</h3>
+            <p style="color:#888; font-size:14px;">Uploadez une photo qui défilera en bas de l'écran pendant la durée choisie.</p>
+            
+            <form id="sneakyPhotoForm">
+                <div class="form-group">
+                    <label>Sélectionner une photo</label>
+                    <input type="file" id="sneakyPhotoInput" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label>Durée d'affichage</label>
+                    <select id="sneakyPhotoDuration">
+                        <option value="15">15 minutes</option>
+                        <option value="30">30 minutes</option>
+                        <option value="60">1 heure</option>
+                        <option value="240">4 heures</option>
+                        <option value="endOfDay">Jusqu'à la fin de la journée</option>
+                        <option value="endOfWeek">Jusqu'à la fin de la semaine</option>
+                    </select>
+                </div>
+                <button type="submit">📤 Activer la photo furtive</button>
+            </form>
+            <div id="photoResult" class="result-message" style="display:none;"></div>
+            
+            <div style="margin-top:20px; padding-top:20px; border-top:1px solid #333;">
+                <h4>Photo furtive active</h4>
+                <div id="activePhotoStatus" style="color:#888;">Chargement...</div>
+                <img id="sneakyPhotoPreview" style="max-width:200px; max-height:150px; margin-top:10px; border-radius:8px; display:none;">
+                <button onclick="disableSneakyPhoto()" class="danger" style="margin-top:15px;">🗑️ Désactiver la photo</button>
+            </div>
         </div>
     </div>
 
@@ -694,7 +730,7 @@
       }
       
       function renderAdminEvent(event) {
-        const eventId = String(event.id || `${event.title || event.summary}_${event.start}`);
+        const eventId = String(event.uid || `${event.title || event.summary}_${event.start}`);
         const isCompleted = adminCompletedEvents.includes(eventId);
         const startTime = new Date(event.start);
         const timeStr = startTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -751,12 +787,76 @@
         setTimeout(() => { el.style.display = 'none'; }, 3000);
       }
 
+      // ========== PHOTO FURTIVE ==========
+      document.getElementById('sneakyPhotoForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const file = document.getElementById('sneakyPhotoInput').files[0];
+        if (!file) {
+          showResult('photoResult', 'Veuillez sélectionner une photo', false);
+          return;
+        }
+        
+        const duration = document.getElementById('sneakyPhotoDuration').value;
+        const formData = new FormData();
+        formData.append('photo', file);
+        formData.append('duration', duration);
+        
+        try {
+          const res = await fetch(`${backendUrl}/api/sneaky-photo`, {
+            method: 'POST',
+            body: formData
+          });
+          if (res.ok) {
+            showResult('photoResult', 'Photo furtive activée !', true);
+            loadSneakyPhotoStatus();
+          } else {
+            showResult('photoResult', 'Erreur lors de l\'upload', false);
+          }
+        } catch (err) {
+          showResult('photoResult', 'Erreur de connexion', false);
+        }
+      });
+      
+      async function loadSneakyPhotoStatus() {
+        try {
+          const res = await fetch(`${backendUrl}/api/sneaky-photo/status`);
+          const data = await res.json();
+          const statusEl = document.getElementById('activePhotoStatus');
+          const previewEl = document.getElementById('sneakyPhotoPreview');
+          
+          if (data.active) {
+            const expireDate = new Date(data.expiresAt);
+            statusEl.innerHTML = `<span style="color:#00ff00;">✅ Active</span> - Expire: ${expireDate.toLocaleString('fr-FR')}`;
+            previewEl.src = `${backendUrl}/api/sneaky-photo/image?t=${Date.now()}`;
+            previewEl.style.display = 'block';
+          } else {
+            statusEl.innerHTML = '<span style="color:#888;">❌ Aucune photo active</span>';
+            previewEl.style.display = 'none';
+          }
+        } catch (err) {
+          document.getElementById('activePhotoStatus').textContent = 'Erreur de chargement';
+        }
+      }
+      
+      async function disableSneakyPhoto() {
+        try {
+          const res = await fetch(`${backendUrl}/api/sneaky-photo`, { method: 'DELETE' });
+          if (res.ok) {
+            showResult('photoResult', 'Photo désactivée', true);
+            loadSneakyPhotoStatus();
+          }
+        } catch (err) {
+          showResult('photoResult', 'Erreur', false);
+        }
+      }
+
       // ========== INITIALISATION ==========
       document.addEventListener('DOMContentLoaded', () => {
         loadAdminEvents(); // Charger les événements au démarrage
         loadConfig();
         loadWelcomeMessages();
         loadColorRules();
+        loadSneakyPhotoStatus();
         
         // Scroll toggle
         const scrollToggle = document.getElementById('scrollToggle');

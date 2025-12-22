@@ -22,6 +22,11 @@ db.run(`
   )
 `);
 
+// Ajouter la colonne uid à la table events si elle n'existe pas
+db.run(`ALTER TABLE events ADD COLUMN uid TEXT`, (err) => {
+  // Ignore l'erreur si la colonne existe déjà
+});
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -62,9 +67,120 @@ app.use(express.json());
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
 const LOGO_PATH = path.join(UPLOAD_DIR, 'logo.png');
+const SNEAKY_PHOTO_PATH = path.join(UPLOAD_DIR, 'sneaky-photo.jpg');
+const SNEAKY_PHOTO_CONFIG = path.join(UPLOAD_DIR, 'sneaky-photo.json');
 const upload = multer({ dest: UPLOAD_DIR });
 
 app.use(express.static(path.join(__dirname, '../client')));
+
+// ===============================================
+//  ROUTES API - PHOTO FURTIVE
+// ===============================================
+
+// Upload et activation de la photo furtive
+app.post('/api/sneaky-photo', upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Aucune photo fournie' });
+    }
+    
+    // Déplacer le fichier uploadé
+    await fs.move(req.file.path, SNEAKY_PHOTO_PATH, { overwrite: true });
+    
+    // Calculer la date d'expiration
+    const duration = req.body.duration;
+    let expiresAt;
+    const now = new Date();
+    
+    if (duration === 'endOfDay') {
+      expiresAt = new Date(now);
+      expiresAt.setHours(23, 59, 59, 999);
+    } else if (duration === 'endOfWeek') {
+      expiresAt = new Date(now);
+      const daysUntilSunday = 7 - now.getDay();
+      expiresAt.setDate(now.getDate() + daysUntilSunday);
+      expiresAt.setHours(23, 59, 59, 999);
+    } else {
+      const minutes = parseInt(duration) || 15;
+      expiresAt = new Date(now.getTime() + minutes * 60 * 1000);
+    }
+    
+    // Sauvegarder la configuration
+    const config = {
+      active: true,
+      uploadedAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString()
+    };
+    fs.writeFileSync(SNEAKY_PHOTO_CONFIG, JSON.stringify(config, null, 2));
+    
+    console.log(`📸 Photo furtive activée jusqu'à ${expiresAt.toLocaleString()}`);
+    res.json({ success: true, expiresAt: expiresAt.toISOString() });
+  } catch (error) {
+    console.error('Erreur upload photo furtive:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'upload' });
+  }
+});
+
+// Récupérer le statut de la photo furtive
+app.get('/api/sneaky-photo/status', (req, res) => {
+  try {
+    if (!fs.existsSync(SNEAKY_PHOTO_CONFIG)) {
+      return res.json({ active: false });
+    }
+    
+    const config = JSON.parse(fs.readFileSync(SNEAKY_PHOTO_CONFIG, 'utf8'));
+    const now = new Date();
+    const expiresAt = new Date(config.expiresAt);
+    
+    if (!config.active || now > expiresAt) {
+      return res.json({ active: false });
+    }
+    
+    res.json({
+      active: true,
+      uploadedAt: config.uploadedAt,
+      expiresAt: config.expiresAt
+    });
+  } catch (error) {
+    res.json({ active: false });
+  }
+});
+
+// Récupérer l'image de la photo furtive
+app.get('/api/sneaky-photo/image', (req, res) => {
+  try {
+    if (!fs.existsSync(SNEAKY_PHOTO_CONFIG) || !fs.existsSync(SNEAKY_PHOTO_PATH)) {
+      return res.status(404).json({ error: 'Aucune photo active' });
+    }
+    
+    const config = JSON.parse(fs.readFileSync(SNEAKY_PHOTO_CONFIG, 'utf8'));
+    const now = new Date();
+    const expiresAt = new Date(config.expiresAt);
+    
+    if (!config.active || now > expiresAt) {
+      return res.status(404).json({ error: 'Photo expirée' });
+    }
+    
+    res.sendFile(SNEAKY_PHOTO_PATH);
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Désactiver la photo furtive
+app.delete('/api/sneaky-photo', (req, res) => {
+  try {
+    if (fs.existsSync(SNEAKY_PHOTO_CONFIG)) {
+      const config = JSON.parse(fs.readFileSync(SNEAKY_PHOTO_CONFIG, 'utf8'));
+      config.active = false;
+      fs.writeFileSync(SNEAKY_PHOTO_CONFIG, JSON.stringify(config, null, 2));
+    }
+    console.log('📸 Photo furtive désactivée');
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
 
 // ===============================================
 //  ROUTES API

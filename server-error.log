@@ -8860,3 +8860,10 @@
 ❌ Erreur Sonos: connect EHOSTUNREACH 192.168.205.58:1400 - Local (192.168.205.75:64716)
 ❌ Erreur Sonos: connect EHOSTUNREACH 192.168.205.58:1400 - Local (192.168.205.75:64718)
 ❌ Erreur Sonos: connect EHOSTUNREACH 192.168.205.58:1400 - Local (192.168.205.75:64721)
+❌ Erreur Sonos: connect ETIMEDOUT 192.168.205.58:1400
+❌ Erreur Sonos: connect ENETDOWN 192.168.205.58:1400 - Local (192.168.205.75:63870)
+❌ Erreur Sonos: read ECONNRESET
+❌ Erreur Sonos: connect ENETDOWN 192.168.205.58:1400 - Local (192.168.205.75:61194)
+❌ Erreur Sonos: connect ENETDOWN 192.168.205.58:1400 - Local (192.168.205.75:56355)
+❌ Erreur Sonos: connect ENETDOWN 192.168.205.58:1400 - Local (192.168.205.75:51912)
+❌ Erreur Sonos: connect ENETDOWN 192.168.205.58:1400 - Local (192.168.205.75:56593)

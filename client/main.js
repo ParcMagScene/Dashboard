@@ -177,8 +177,8 @@ function createEventElement(event) {
   const li = document.createElement('li');
   li.className = 'event-item';
   
-  // Générer un ID unique pour l'événement - TOUJOURS en string pour cohérence avec l'API
-  const eventId = String(event.id || `${event.title || event.summary}_${event.start}`);
+  // IMPORTANT: Utiliser UNIQUEMENT l'UID stable pour persister l'état terminé
+  const eventId = String(event.uid);
   li.dataset.eventId = eventId;
   
   // Parsing de la date selon différents formats possibles
@@ -194,7 +194,9 @@ function createEventElement(event) {
     startTime = new Date();
   }
   
-  const timeStr = formatTime(startTime);
+  // Détecter si c'est un événement "toute la journée" (heure = 00:00)
+  const isAllDay = startTime.getHours() === 0 && startTime.getMinutes() === 0;
+  const timeStr = isAllDay ? '' : formatTime(startTime);
   
   // Récupérer le titre selon différents champs possibles
   const eventTitle = event.title || event.summary || event.name || 'Sans titre';
@@ -473,12 +475,70 @@ setInterval(() => {
   loadEvents();
 }, 10000);
 
+// ===============================================
+//  PHOTO FURTIVE
+// ===============================================
+let sneakyPhotoContainer = null;
+
+async function checkSneakyPhoto() {
+  try {
+    const response = await fetch(`${API_BASE}/api/sneaky-photo/status`);
+    const data = await response.json();
+    
+    if (data.active) {
+      showSneakyPhoto();
+    } else {
+      hideSneakyPhoto();
+    }
+  } catch (error) {
+    console.error('Erreur vérification photo furtive:', error);
+  }
+}
+
+function showSneakyPhoto() {
+  // Ne pas recréer si déjà présent
+  if (sneakyPhotoContainer) return;
+  
+  sneakyPhotoContainer = document.createElement('div');
+  sneakyPhotoContainer.className = 'sneaky-photo-container';
+  sneakyPhotoContainer.id = 'sneaky-photo-container';
+  
+  const img = document.createElement('img');
+  img.className = 'sneaky-photo';
+  img.src = `${API_BASE}/api/sneaky-photo/image?t=${Date.now()}`;
+  img.alt = 'Photo furtive';
+  
+  // Gérer les erreurs de chargement
+  img.onerror = () => {
+    hideSneakyPhoto();
+  };
+  
+  sneakyPhotoContainer.appendChild(img);
+  document.body.appendChild(sneakyPhotoContainer);
+  
+  console.log('📸 Photo furtive affichée');
+}
+
+function hideSneakyPhoto() {
+  if (sneakyPhotoContainer) {
+    sneakyPhotoContainer.remove();
+    sneakyPhotoContainer = null;
+    console.log('📸 Photo furtive masquée');
+  }
+}
+
+// Vérifier la photo furtive toutes les 30 secondes
+setInterval(checkSneakyPhoto, 30000);
 
 // ===============================================
 //  DÉMARRAGE AUTOMATIQUE
 // ===============================================
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', () => {
+    init();
+    checkSneakyPhoto();
+  });
 } else {
   init();
+  checkSneakyPhoto();
 }
