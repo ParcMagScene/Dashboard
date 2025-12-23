@@ -69,6 +69,7 @@ const UPLOAD_DIR = path.join(__dirname, 'uploads');
 const LOGO_PATH = path.join(UPLOAD_DIR, 'logo.png');
 const SNEAKY_PHOTO_PATH = path.join(UPLOAD_DIR, 'sneaky-photo.jpg');
 const SNEAKY_PHOTO_CONFIG = path.join(UPLOAD_DIR, 'sneaky-photo.json');
+const SNEAKY_MESSAGE_CONFIG = path.join(UPLOAD_DIR, 'sneaky-message.json');
 const upload = multer({ dest: UPLOAD_DIR });
 
 app.use(express.static(path.join(__dirname, '../client')));
@@ -183,6 +184,94 @@ app.delete('/api/sneaky-photo', (req, res) => {
 });
 
 // ===============================================
+//  ROUTES API - MESSAGE FURTIF
+// ===============================================
+
+// Activer un message d'accueil furtif
+app.post('/api/sneaky-message', (req, res) => {
+  try {
+    const { message, duration } = req.body;
+    
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: 'Message requis' });
+    }
+    
+    // Calculer la date d'expiration
+    const now = new Date();
+    let expiresAt;
+    
+    if (duration === 'endOfDay') {
+      expiresAt = new Date(now);
+      expiresAt.setHours(23, 59, 59, 999);
+    } else if (duration === 'endOfWeek') {
+      expiresAt = new Date(now);
+      const daysUntilSunday = 7 - now.getDay();
+      expiresAt.setDate(now.getDate() + daysUntilSunday);
+      expiresAt.setHours(23, 59, 59, 999);
+    } else {
+      const minutes = parseInt(duration) || 15;
+      expiresAt = new Date(now.getTime() + minutes * 60 * 1000);
+    }
+    
+    // Sauvegarder la configuration
+    const config = {
+      active: true,
+      message: message.trim(),
+      createdAt: now.toISOString(),
+      expiresAt: expiresAt.toISOString()
+    };
+    fs.writeFileSync(SNEAKY_MESSAGE_CONFIG, JSON.stringify(config, null, 2));
+    
+    console.log(`💬 Message furtif activé jusqu'à ${expiresAt.toLocaleString()}: "${message.trim()}"`);
+    res.json({ success: true, expiresAt: expiresAt.toISOString() });
+  } catch (error) {
+    console.error('Erreur activation message furtif:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// Récupérer le statut du message furtif
+app.get('/api/sneaky-message/status', (req, res) => {
+  try {
+    if (!fs.existsSync(SNEAKY_MESSAGE_CONFIG)) {
+      return res.json({ active: false });
+    }
+    
+    const config = JSON.parse(fs.readFileSync(SNEAKY_MESSAGE_CONFIG, 'utf8'));
+    const now = new Date();
+    const expiresAt = new Date(config.expiresAt);
+    
+    if (!config.active || now > expiresAt) {
+      return res.json({ active: false });
+    }
+    
+    res.json({
+      active: true,
+      message: config.message,
+      createdAt: config.createdAt,
+      expiresAt: config.expiresAt
+    });
+  } catch (error) {
+    res.json({ active: false });
+  }
+});
+
+// Désactiver le message furtif
+app.delete('/api/sneaky-message', (req, res) => {
+  try {
+    if (fs.existsSync(SNEAKY_MESSAGE_CONFIG)) {
+      const config = JSON.parse(fs.readFileSync(SNEAKY_MESSAGE_CONFIG, 'utf8'));
+      config.active = false;
+      fs.writeFileSync(SNEAKY_MESSAGE_CONFIG, JSON.stringify(config, null, 2));
+    }
+    console.log('💬 Message furtif désactivé');
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// ===============================================
 //  ROUTES API
 // ===============================================
 
@@ -206,6 +295,22 @@ app.post('/api/sync', async (req, res) => {
 
 // Message d'accueil dynamique selon jour et créneau horaire
 app.get('/api/welcome-message', (req, res) => {
+  // Vérifier d'abord s'il y a un message furtif actif
+  try {
+    if (fs.existsSync(SNEAKY_MESSAGE_CONFIG)) {
+      const sneakyConfig = JSON.parse(fs.readFileSync(SNEAKY_MESSAGE_CONFIG, 'utf8'));
+      const now = new Date();
+      const expiresAt = new Date(sneakyConfig.expiresAt);
+      
+      if (sneakyConfig.active && now <= expiresAt) {
+        // Retourner le message furtif avec un flag pour indiquer que c'est un message furtif
+        return res.json({ message: sneakyConfig.message, isSneaky: true });
+      }
+    }
+  } catch (error) {
+    // Ignorer les erreurs et continuer avec le message normal
+  }
+  
   // Détermine le jour et le créneau horaire actuel
   const jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
   const now = new Date();
@@ -230,11 +335,11 @@ app.get('/api/welcome-message', (req, res) => {
   db.get('SELECT message FROM welcome_messages WHERE day = ? AND slot = ?', [jour, slot], (err, row) => {
     if (err) {
       console.error('Erreur lors de la récupération du message:', err);
-      return res.json({ message: 'Bonne journée !' });
+      return res.json({ message: 'Bonne journée !', isSneaky: false });
     }
     
     const message = row ? row.message : 'Bonne journée !';
-    res.json({ message });
+    res.json({ message, isSneaky: false });
   });
 });
 

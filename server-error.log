@@ -8867,3 +8867,14 @@
 ❌ Erreur Sonos: connect ENETDOWN 192.168.205.58:1400 - Local (192.168.205.75:56355)
 ❌ Erreur Sonos: connect ENETDOWN 192.168.205.58:1400 - Local (192.168.205.75:51912)
 ❌ Erreur Sonos: connect ENETDOWN 192.168.205.58:1400 - Local (192.168.205.75:56593)
+Erreur serveur HTTP: Error: listen EADDRINUSE: address already in use 0.0.0.0:3001
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 3001
+}

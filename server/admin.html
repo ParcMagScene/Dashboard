@@ -387,6 +387,40 @@
 
     <!-- ==================== ONGLET MESSAGES ==================== -->
     <div class="tab-content" id="tab-messages">
+        <!-- Section Message Furtif -->
+        <div class="section">
+            <h3>⚡ Message d'accueil furtif</h3>
+            <p style="color:#888; font-size:14px;">Activez un message temporaire qui remplace le message d'accueil configuré.</p>
+            
+            <form id="sneakyMessageForm">
+                <div class="form-group">
+                    <label>Message à afficher</label>
+                    <textarea id="sneakyMessageText" placeholder="Entrez votre message furtif..." rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Durée d'affichage</label>
+                    <select id="sneakyMessageDuration">
+                        <option value="15">15 minutes</option>
+                        <option value="30">30 minutes</option>
+                        <option value="60">1 heure</option>
+                        <option value="240">4 heures</option>
+                        <option value="endOfDay">Jusqu'à la fin de la journée</option>
+                        <option value="endOfWeek">Jusqu'à la fin de la semaine</option>
+                    </select>
+                </div>
+                <button type="submit">⚡ Activer le message furtif</button>
+            </form>
+            <div id="sneakyMessageResult" class="result-message" style="display:none;"></div>
+            
+            <div style="margin-top:20px; padding-top:20px; border-top:1px solid #333;">
+                <h4>Message furtif actif</h4>
+                <div id="activeSneakyMessageStatus" style="color:#888;">Chargement...</div>
+                <div id="activeSneakyMessagePreview" style="background:#222; padding:10px; border-radius:8px; margin-top:10px; display:none; font-style:italic;"></div>
+                <button onclick="disableSneakyMessage()" class="danger" style="margin-top:15px;">🗑️ Désactiver le message</button>
+            </div>
+        </div>
+        
+        <!-- Section Messages Dynamiques -->
         <div class="section">
             <h3>💬 Messages d'accueil dynamiques</h3>
             <p style="color:#888; font-size:14px;">Configurez les messages affichés selon le jour et le créneau horaire.</p>
@@ -850,6 +884,68 @@
         }
       }
 
+      // ========== MESSAGE FURTIF ==========
+      document.getElementById('sneakyMessageForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const message = document.getElementById('sneakyMessageText').value;
+        if (!message.trim()) {
+          showResult('sneakyMessageResult', 'Veuillez entrer un message', false);
+          return;
+        }
+        
+        const duration = document.getElementById('sneakyMessageDuration').value;
+        
+        try {
+          const res = await fetch(`${backendUrl}/api/sneaky-message`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message, duration })
+          });
+          if (res.ok) {
+            showResult('sneakyMessageResult', 'Message furtif activé !', true);
+            document.getElementById('sneakyMessageText').value = '';
+            loadSneakyMessageStatus();
+          } else {
+            showResult('sneakyMessageResult', 'Erreur lors de l\'activation', false);
+          }
+        } catch (err) {
+          showResult('sneakyMessageResult', 'Erreur de connexion', false);
+        }
+      });
+      
+      async function loadSneakyMessageStatus() {
+        try {
+          const res = await fetch(`${backendUrl}/api/sneaky-message/status`);
+          const data = await res.json();
+          const statusEl = document.getElementById('activeSneakyMessageStatus');
+          const previewEl = document.getElementById('activeSneakyMessagePreview');
+          
+          if (data.active) {
+            const expireDate = new Date(data.expiresAt);
+            statusEl.innerHTML = `<span style="color:#00ff00;">✅ Actif</span> - Expire: ${expireDate.toLocaleString('fr-FR')}`;
+            previewEl.textContent = `"${data.message}"`;
+            previewEl.style.display = 'block';
+          } else {
+            statusEl.innerHTML = '<span style="color:#888;">❌ Aucun message actif</span>';
+            previewEl.style.display = 'none';
+          }
+        } catch (err) {
+          document.getElementById('activeSneakyMessageStatus').textContent = 'Erreur de chargement';
+        }
+      }
+      
+      async function disableSneakyMessage() {
+        try {
+          const res = await fetch(`${backendUrl}/api/sneaky-message`, { method: 'DELETE' });
+          if (res.ok) {
+            showResult('sneakyMessageResult', 'Message désactivé', true);
+            loadSneakyMessageStatus();
+          }
+        } catch (err) {
+          showResult('sneakyMessageResult', 'Erreur', false);
+        }
+      }
+
       // ========== INITIALISATION ==========
       document.addEventListener('DOMContentLoaded', () => {
         loadAdminEvents(); // Charger les événements au démarrage
@@ -857,6 +953,7 @@
         loadWelcomeMessages();
         loadColorRules();
         loadSneakyPhotoStatus();
+        loadSneakyMessageStatus();
         
         // Scroll toggle
         const scrollToggle = document.getElementById('scrollToggle');
