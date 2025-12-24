@@ -302,6 +302,166 @@
           flex-wrap: nowrap;
         }
       }
+      
+      /* ========== GALERIE GIF ========== */
+      .gifs-gallery {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+      }
+      .gif-item {
+        position: relative;
+        background: #222;
+        border: 2px solid #333;
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      .gif-item:hover {
+        border-color: #ff3333;
+        background: rgba(255, 51, 51, 0.1);
+      }
+      .gif-item img {
+        max-width: 80px;
+        max-height: 80px;
+        object-fit: contain;
+      }
+      .gif-item .gif-name {
+        font-size: 10px;
+        color: #888;
+        margin-top: 5px;
+        word-break: break-all;
+      }
+      .gif-item .delete-overlay {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #ff3333;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+      }
+      .gif-item:hover .delete-overlay {
+        display: flex;
+      }
+      
+      /* ========== RÈGLES ICÔNES LIEUX ========== */
+      .icon-rule {
+        background: #222;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+      }
+      .icon-rule-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .icon-rule-row input[type="text"] {
+        flex: 1;
+        min-width: 120px;
+      }
+      .icon-rule-row button {
+        width: auto;
+        padding: 10px 15px;
+        margin: 0;
+      }
+      .icon-selector {
+        position: relative;
+        cursor: pointer;
+      }
+      .icon-selector .selected-icon {
+        width: 50px;
+        height: 50px;
+        background: #333;
+        border: 2px solid #00e1ff;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+      .icon-selector .selected-icon img {
+        max-width: 40px;
+        max-height: 40px;
+        object-fit: contain;
+      }
+      .icon-selector .selected-icon.empty {
+        font-size: 24px;
+        color: #666;
+      }
+      
+      /* ========== MOSAÏQUE SÉLECTION ICÔNE ========== */
+      .icon-mosaic-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 1000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .icon-mosaic-overlay.active {
+        display: flex;
+      }
+      .icon-mosaic-container {
+        background: #111;
+        border: 2px solid #00e1ff;
+        border-radius: 12px;
+        padding: 20px;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+      .icon-mosaic-container h3 {
+        margin: 0 0 15px 0;
+        color: #00e1ff;
+        text-align: center;
+      }
+      .icon-mosaic {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+      .icon-mosaic-item {
+        background: #222;
+        border: 2px solid #333;
+        border-radius: 8px;
+        padding: 15px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .icon-mosaic-item:hover {
+        border-color: #00e1ff;
+        background: rgba(0, 225, 255, 0.1);
+        transform: scale(1.05);
+      }
+      .icon-mosaic-item img {
+        max-width: 50px;
+        max-height: 50px;
+        object-fit: contain;
+      }
+      .icon-mosaic-close {
+        margin-top: 15px;
+        width: 100%;
+      }
     </style>
 </head>
 <body>
@@ -315,6 +475,7 @@
         <button class="tab-btn" data-tab="config">🎨 Apparence</button>
         <button class="tab-btn" data-tab="messages">💬 Messages</button>
         <button class="tab-btn" data-tab="colors">🏷️ Couleurs</button>
+        <button class="tab-btn" data-tab="icons">🎬 Icônes</button>
         <button class="tab-btn" data-tab="logo">🖼️ Logo</button>
         <button class="tab-btn" data-tab="photo">📸 Photo</button>
         <button class="tab-btn" data-tab="sync">🔄 Sync</button>
@@ -456,6 +617,43 @@
         </div>
     </div>
 
+    <!-- ==================== ONGLET ICÔNES ==================== -->
+    <div class="tab-content" id="tab-icons">
+        <!-- Section Import GIF -->
+        <div class="section">
+            <h3>📥 Importer des icônes</h3>
+            <p style="color:#888; font-size:14px;">Uploadez de nouvelles icônes (GIF animés ou PNG avec transparence).</p>
+            
+            <form id="gifUploadForm">
+                <div class="form-group">
+                    <label>Sélectionner un fichier GIF ou PNG</label>
+                    <input type="file" id="gifInput" accept="image/gif,image/png">
+                </div>
+                <button type="submit">📤 Importer le GIF</button>
+            </form>
+            <div id="gifUploadResult" class="result-message" style="display:none;"></div>
+        </div>
+        
+        <!-- Section Galerie GIF -->
+        <div class="section">
+            <h3>🖼️ Galerie des icônes disponibles</h3>
+            <p style="color:#888; font-size:14px;">Cliquez sur une icône pour la supprimer.</p>
+            <div id="gifsGallery" class="gifs-gallery"></div>
+        </div>
+        
+        <!-- Section Association Lieu -> Icône -->
+        <div class="section">
+            <h3>🎬 Associer des icônes aux lieux</h3>
+            <p style="color:#888; font-size:14px;">Définissez quelle icône afficher à gauche d'un événement selon son lieu.</p>
+            
+            <div id="locationIconRulesContainer"></div>
+            
+            <button class="secondary" onclick="addLocationIconRule()">➕ Ajouter une règle</button>
+            <button onclick="saveLocationIconRules()">💾 Enregistrer les règles</button>
+            <div id="locationIconRulesResult" class="result-message" style="display:none;"></div>
+        </div>
+    </div>
+
     <!-- ==================== ONGLET LOGO ==================== -->
     <div class="tab-content" id="tab-logo">
         <div class="section">
@@ -515,6 +713,15 @@
             <p style="color:#888; font-size:14px;">Forcez une synchronisation immédiate du calendrier Google.</p>
             <button onclick="forceSync()">🔄 Synchroniser maintenant</button>
             <div id="syncResult" class="result-message" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- ==================== OVERLAY MOSAÏQUE ICÔNES ==================== -->
+    <div id="iconMosaicOverlay" class="icon-mosaic-overlay">
+        <div class="icon-mosaic-container">
+            <h3>🎬 Choisir une icône</h3>
+            <div id="iconMosaic" class="icon-mosaic"></div>
+            <button class="secondary icon-mosaic-close" onclick="closeIconMosaic()">❌ Annuler</button>
         </div>
     </div>
 
@@ -681,6 +888,203 @@
           body: JSON.stringify({ rules: colorRulesData })
         });
         showResult('colorRulesResult', res.ok ? 'Règles enregistrées !' : 'Erreur', res.ok);
+      }
+
+      // ========== GESTION DES ICÔNES DE LIEUX ==========
+      let availableGifs = [];
+      let locationIconRules = [];
+      let currentIconRuleIndex = null;
+
+      // Charger la liste des GIFs disponibles
+      async function loadAvailableGifs() {
+        try {
+          const res = await fetch(`${backendUrl}/api/location-gifs`);
+          const data = await res.json();
+          availableGifs = data.gifs || [];
+          renderGifsGallery();
+          renderIconMosaic();
+        } catch (err) {
+          console.error('Erreur chargement GIFs:', err);
+          availableGifs = [];
+        }
+      }
+
+      // Afficher la galerie de GIFs
+      function renderGifsGallery() {
+        const gallery = document.getElementById('gifsGallery');
+        if (!gallery) return;
+        
+        if (availableGifs.length === 0) {
+          gallery.innerHTML = '<div style="color:#888; text-align:center; padding:20px;">Aucune icône disponible. Importez des fichiers GIF.</div>';
+          return;
+        }
+        
+        gallery.innerHTML = availableGifs.map(gif => `
+          <div class="gif-item" onclick="confirmDeleteGif('${gif}')">
+            <div class="delete-overlay">🗑️</div>
+            <img src="/gifs/${gif}" alt="${gif}">
+            <div class="gif-name">${gif.replace('.gif', '')}</div>
+          </div>
+        `).join('');
+      }
+
+      // Confirmer la suppression d'un GIF
+      async function confirmDeleteGif(filename) {
+        if (!confirm(`Supprimer l'icône "${filename}" ?`)) return;
+        
+        try {
+          const res = await fetch(`${backendUrl}/api/location-gifs/${encodeURIComponent(filename)}`, {
+            method: 'DELETE'
+          });
+          if (res.ok) {
+            showResult('gifUploadResult', 'Icône supprimée !', true);
+            loadAvailableGifs();
+          } else {
+            showResult('gifUploadResult', 'Erreur lors de la suppression', false);
+          }
+        } catch (err) {
+          showResult('gifUploadResult', 'Erreur de connexion', false);
+        }
+      }
+
+      // Upload de GIF
+      document.getElementById('gifUploadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const file = document.getElementById('gifInput').files[0];
+        if (!file) {
+          showResult('gifUploadResult', 'Veuillez sélectionner un fichier GIF', false);
+          return;
+        }
+        
+        const formData = new FormData();
+        formData.append('gif', file);
+        
+        try {
+          const res = await fetch(`${backendUrl}/api/location-gifs`, {
+            method: 'POST',
+            body: formData
+          });
+          if (res.ok) {
+            showResult('gifUploadResult', 'Icône importée avec succès !', true);
+            document.getElementById('gifInput').value = '';
+            loadAvailableGifs();
+          } else {
+            const data = await res.json();
+            showResult('gifUploadResult', data.error || 'Erreur lors de l\'import', false);
+          }
+        } catch (err) {
+          showResult('gifUploadResult', 'Erreur de connexion', false);
+        }
+      });
+
+      // Charger les règles d'icônes de lieux
+      async function loadLocationIconRules() {
+        try {
+          const res = await fetch(`${backendUrl}/api/location-icons`);
+          const data = await res.json();
+          locationIconRules = data.rules || [];
+        } catch (err) {
+          locationIconRules = [];
+        }
+        renderLocationIconRules();
+      }
+
+      // Afficher les règles d'icônes de lieux
+      function renderLocationIconRules() {
+        const container = document.getElementById('locationIconRulesContainer');
+        if (!container) return;
+        
+        if (locationIconRules.length === 0) {
+          container.innerHTML = '<div style="color:#888; text-align:center; padding:15px;">Aucune règle définie. Cliquez sur "Ajouter une règle".</div>';
+          return;
+        }
+        
+        container.innerHTML = locationIconRules.map((rule, index) => `
+          <div class="icon-rule">
+            <div class="icon-rule-row">
+              <div class="icon-selector" onclick="openIconMosaic(${index})">
+                <div class="selected-icon ${rule.icon ? '' : 'empty'}">
+                  ${rule.icon ? `<img src="/gifs/${rule.icon}" alt="${rule.icon}">` : '➕'}
+                </div>
+              </div>
+              <input type="text" placeholder="Mot-clé du lieu (ex: Salle A, Bureau...)" 
+                     value="${rule.keyword || ''}" 
+                     onchange="locationIconRules[${index}].keyword = this.value">
+              <button class="danger" onclick="removeLocationIconRule(${index})" style="width:auto;">🗑️</button>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Ajouter une règle d'icône
+      function addLocationIconRule() {
+        locationIconRules.push({ keyword: '', icon: '' });
+        renderLocationIconRules();
+      }
+
+      // Supprimer une règle d'icône
+      function removeLocationIconRule(index) {
+        locationIconRules.splice(index, 1);
+        renderLocationIconRules();
+      }
+
+      // Ouvrir la mosaïque pour sélectionner une icône
+      function openIconMosaic(ruleIndex) {
+        currentIconRuleIndex = ruleIndex;
+        renderIconMosaic();
+        document.getElementById('iconMosaicOverlay').classList.add('active');
+      }
+
+      // Fermer la mosaïque
+      function closeIconMosaic() {
+        document.getElementById('iconMosaicOverlay').classList.remove('active');
+        currentIconRuleIndex = null;
+      }
+
+      // Afficher la mosaïque des icônes
+      function renderIconMosaic() {
+        const mosaic = document.getElementById('iconMosaic');
+        if (!mosaic) return;
+        
+        if (availableGifs.length === 0) {
+          mosaic.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#888; padding:20px;">Aucune icône disponible. Importez d\'abord des fichiers GIF.</div>';
+          return;
+        }
+        
+        mosaic.innerHTML = availableGifs.map(gif => `
+          <div class="icon-mosaic-item" onclick="selectIcon('${gif}')">
+            <img src="/gifs/${gif}" alt="${gif}">
+          </div>
+        `).join('');
+      }
+
+      // Sélectionner une icône dans la mosaïque
+      function selectIcon(gifFilename) {
+        if (currentIconRuleIndex !== null && locationIconRules[currentIconRuleIndex]) {
+          locationIconRules[currentIconRuleIndex].icon = gifFilename;
+          renderLocationIconRules();
+        }
+        closeIconMosaic();
+      }
+
+      // Sauvegarder les règles d'icônes
+      async function saveLocationIconRules() {
+        // Filtrer les règles vides
+        const validRules = locationIconRules.filter(r => r.keyword && r.icon);
+        
+        const res = await fetch(`${backendUrl}/api/location-icons`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rules: validRules })
+        });
+        
+        if (res.ok) {
+          showResult('locationIconRulesResult', 'Règles d\'icônes enregistrées !', true);
+          locationIconRules = validRules;
+          renderLocationIconRules();
+        } else {
+          showResult('locationIconRulesResult', 'Erreur lors de l\'enregistrement', false);
+        }
       }
 
       // ========== LOGO ==========
@@ -952,6 +1356,8 @@
         loadConfig();
         loadWelcomeMessages();
         loadColorRules();
+        loadAvailableGifs(); // Charger les GIFs disponibles
+        loadLocationIconRules(); // Charger les règles d'icônes
         loadSneakyPhotoStatus();
         loadSneakyMessageStatus();
         

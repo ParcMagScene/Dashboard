@@ -1,0 +1,24 @@
+{
+  "rules": [
+    {
+      "keyword": "Liv",
+      "icon": "camion.gif"
+    },
+    {
+      "keyword": "Prepa",
+      "icon": "chariot-elevateur.gif"
+    },
+    {
+      "keyword": "Presta",
+      "icon": "travail-dequipe.gif"
+    },
+    {
+      "keyword": "VTE",
+      "icon": "sac-dargent.gif"
+    },
+    {
+      "keyword": "Rangement",
+      "icon": "dossiers.gif"
+    }
+  ]
+}

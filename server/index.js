@@ -66,13 +66,26 @@ app.use(express.json());
 
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
+const GIFS_DIR = path.join(__dirname, '..', 'GIFS');
 const LOGO_PATH = path.join(UPLOAD_DIR, 'logo.png');
 const SNEAKY_PHOTO_PATH = path.join(UPLOAD_DIR, 'sneaky-photo.jpg');
 const SNEAKY_PHOTO_CONFIG = path.join(UPLOAD_DIR, 'sneaky-photo.json');
 const SNEAKY_MESSAGE_CONFIG = path.join(UPLOAD_DIR, 'sneaky-message.json');
+const LOCATION_ICONS_CONFIG = path.join(UPLOAD_DIR, 'location-icons.json');
 const upload = multer({ dest: UPLOAD_DIR });
+const gifUpload = multer({ 
+  dest: GIFS_DIR,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'image/gif' || file.mimetype === 'image/png') {
+      cb(null, true);
+    } else {
+      cb(new Error('Seuls les fichiers GIF et PNG sont autorisés'), false);
+    }
+  }
+});
 
 app.use(express.static(path.join(__dirname, '../client')));
+app.use('/gifs', express.static(GIFS_DIR));
 
 // ===============================================
 //  ROUTES API - PHOTO FURTIVE
@@ -478,6 +491,101 @@ app.get('/api/logo', (req, res) => {
   }
 });
 
+// ===============================================
+//  ROUTES API - ICÔNES DE LIEUX (GIFs)
+// ===============================================
+
+// Récupérer la liste des GIFs disponibles
+app.get('/api/location-gifs', (req, res) => {
+  try {
+    if (!fs.existsSync(GIFS_DIR)) {
+      fs.ensureDirSync(GIFS_DIR);
+    }
+    const files = fs.readdirSync(GIFS_DIR).filter(f => {
+      const lower = f.toLowerCase();
+      return lower.endsWith('.gif') || lower.endsWith('.png');
+    });
+    res.json({ gifs: files });
+  } catch (error) {
+    console.error('Erreur lecture dossier GIFS:', error);
+    res.status(500).json({ error: 'Impossible de lire le dossier GIFS' });
+  }
+});
+
+// Upload d'un nouveau GIF
+app.post('/api/location-gifs', gifUpload.single('gif'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Aucun fichier fourni' });
+    }
+    
+    // Renommer le fichier avec son nom original
+    const originalName = req.file.originalname.toLowerCase().replace(/[^a-z0-9.-]/g, '-');
+    const finalPath = path.join(GIFS_DIR, originalName);
+    
+    await fs.move(req.file.path, finalPath, { overwrite: true });
+    
+    console.log(`🎨 Nouveau GIF ajouté: ${originalName}`);
+    res.json({ success: true, filename: originalName });
+  } catch (error) {
+    console.error('Erreur upload GIF:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'upload du GIF' });
+  }
+});
+
+// Supprimer un GIF
+app.delete('/api/location-gifs/:filename', async (req, res) => {
+  try {
+    const filename = req.params.filename;
+    const filePath = path.join(GIFS_DIR, filename);
+    
+    if (fs.existsSync(filePath)) {
+      await fs.remove(filePath);
+      console.log(`🗑️ GIF supprimé: ${filename}`);
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Fichier non trouvé' });
+    }
+  } catch (error) {
+    console.error('Erreur suppression GIF:', error);
+    res.status(500).json({ error: 'Erreur lors de la suppression' });
+  }
+});
+
+// Récupérer les associations lieu -> icône
+app.get('/api/location-icons', (req, res) => {
+  try {
+    if (!fs.existsSync(LOCATION_ICONS_CONFIG)) {
+      return res.json({ rules: [] });
+    }
+    const config = JSON.parse(fs.readFileSync(LOCATION_ICONS_CONFIG, 'utf8'));
+    res.json({ rules: config.rules || [] });
+  } catch (error) {
+    console.error('Erreur lecture config icônes:', error);
+    res.json({ rules: [] });
+  }
+});
+
+// Sauvegarder les associations lieu -> icône
+app.post('/api/location-icons', (req, res) => {
+  try {
+    const { rules } = req.body;
+    
+    if (!rules || !Array.isArray(rules)) {
+      return res.status(400).json({ error: 'Format de données invalide' });
+    }
+    
+    const config = { rules };
+    fs.writeFileSync(LOCATION_ICONS_CONFIG, JSON.stringify(config, null, 2));
+    
+    console.log(`🎨 ${rules.length} règle(s) d'icônes sauvegardée(s)`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erreur sauvegarde config icônes:', error);
+    res.status(500).json({ error: 'Erreur lors de la sauvegarde' });
+  }
+});
+
 
 // ===============================
 //         ROUTE EVENTS           
@@ -749,7 +857,7 @@ syncICalendar()
   .then(count => console.log(`✅ ${count} événement(s) synchronisé(s) au démarrage`))
   .catch(err => console.error('❌ Erreur sync initiale:', err.message));
 
-// Synchronisation automatique toutes les 30 minutes
+// Synchronisation automatique toutes les minutes
 setInterval(async () => {
   try {
     console.log('🔄 Synchronisation automatique des événements...');
@@ -758,7 +866,7 @@ setInterval(async () => {
   } catch (error) {
     console.error('❌ Erreur sync automatique:', error.message);
   }
-}, 30 * 60 * 1000); // 30 minutes
+}, 60 * 1000); // 1 minute
 
 // 🚀 Démarrage du serveur en IPv4
 //   - Lance le serveur HTTPS (activé pour Tidal OAuth)

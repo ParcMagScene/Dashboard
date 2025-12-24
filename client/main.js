@@ -9,6 +9,9 @@ const API_BASE = window.location.origin;
 // Règles de couleurs chargées depuis l'API
 let colorRules = [];
 
+// Règles d'icônes de lieux
+let locationIconRules = [];
+
 // Événements terminés
 let completedEvents = [];
 
@@ -177,6 +180,24 @@ function createEventElement(event) {
   const li = document.createElement('li');
   li.className = 'event-item';
   
+  // Parsing de la date pour détecter les événements toute la journée (utilisé plus tard)
+  let startTimeForAllDay;
+  const dateValueForAllDay = event.start_time || event.start || event.startTime;
+  if (dateValueForAllDay) {
+    startTimeForAllDay = new Date(dateValueForAllDay);
+    if (isNaN(startTimeForAllDay.getTime())) {
+      startTimeForAllDay = new Date();
+    }
+  } else {
+    startTimeForAllDay = new Date();
+  }
+  
+  // Détecter si c'est un événement "toute la journée" et ajouter la classe
+  const isAllDayEvent = startTimeForAllDay.getHours() === 0 && startTimeForAllDay.getMinutes() === 0;
+  if (isAllDayEvent) {
+    li.classList.add('all-day-event');
+  }
+  
   // IMPORTANT: Utiliser UNIQUEMENT l'UID stable pour persister l'état terminé
   const eventId = String(event.uid);
   li.dataset.eventId = eventId;
@@ -208,12 +229,23 @@ function createEventElement(event) {
   // Vérifier si terminé
   const isCompleted = completedEvents.includes(eventId);
   
+  // Rechercher une icône correspondant au lieu
+  const locationIcon = getLocationIcon(eventLocation);
+  
+  // Construire le contenu de la colonne lieu (icône si disponible, sinon texte du lieu)
+  let locationContent;
+  if (locationIcon) {
+    locationContent = `<div class="location-icon"><img src="/gifs/${locationIcon}" alt="${eventLocation}"></div>`;
+  } else {
+    locationContent = eventLocation;
+  }
+  
   // Construire l'affichage en colonnes séparées (coche dans le titre uniquement si terminé)
   li.innerHTML = `
     <div class="event-columns">
       <div class="col-time">${timeStr}</div>
       <div class="col-title">${isCompleted ? '<span class="completed-icon">✅</span>' : ''}${eventTitle}</div>
-      <div class="col-location">${eventLocation}</div>
+      <div class="col-location">${locationContent}</div>
       <div class="col-description">${eventDescription}</div>
     </div>
   `;
@@ -365,13 +397,44 @@ async function loadColorRules() {
 }
 
 // ===============================================
+//  GESTION DES ICÔNES DE LIEUX
+// ===============================================
+async function loadLocationIconRules() {
+  try {
+    const response = await fetch(`${API_BASE}/api/location-icons`);
+    const data = await response.json();
+    locationIconRules = data.rules || [];
+    console.log('Règles d\'icônes chargées:', locationIconRules);
+  } catch (error) {
+    console.error('Erreur lors du chargement des règles d\'icônes:', error);
+    locationIconRules = [];
+  }
+}
+
+// Trouver l'icône correspondant à un lieu
+function getLocationIcon(location) {
+  if (!location || locationIconRules.length === 0) return null;
+  
+  const locationLower = location.toLowerCase();
+  
+  for (const rule of locationIconRules) {
+    if (rule.keyword && rule.icon && locationLower.includes(rule.keyword.toLowerCase())) {
+      return rule.icon;
+    }
+  }
+  
+  return null;
+}
+
+// ===============================================
 //  INITIALISATION
 // ===============================================
 async function init() {
   console.log('🚀 Dashboard Calendrier - Initialisation...');
   
-  // Charger d'abord les règles de couleurs (nécessaire avant les événements)
+  // Charger d'abord les règles de couleurs et d'icônes (nécessaire avant les événements)
   await loadColorRules();
+  await loadLocationIconRules();
   
   // Mise à jour immédiate
   updateDateTime();
