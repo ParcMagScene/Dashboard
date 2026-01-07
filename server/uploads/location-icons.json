@@ -2,23 +2,27 @@
   "rules": [
     {
       "keyword": "Liv",
-      "icon": "camion.gif"
+      "icon": "camion-black-bg.gif"
     },
     {
       "keyword": "Prepa",
-      "icon": "chariot-elevateur.gif"
+      "icon": "chariot-elevateur-black-bg.gif"
     },
     {
       "keyword": "Presta",
-      "icon": "travail-dequipe.gif"
+      "icon": "travail-dequipe-black-bg.gif"
     },
     {
       "keyword": "VTE",
-      "icon": "sac-dargent.gif"
+      "icon": "sac-dargent-black-bg.gif"
     },
     {
       "keyword": "Rangement",
-      "icon": "dossiers.gif"
+      "icon": "dossiers-black-bg.gif"
+    },
+    {
+      "keyword": "Charg",
+      "icon": "accident-du-travail-black-bg.gif"
     }
   ]
 }
